@@ -1,1 +1,456 @@
-// Prisma schema placeholder
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://neondb_owner:npg_E0tHPbYq6Ixv@ep-still-mode-apu82tlf-pooler.c-7.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+}
+
+// =========================================================
+// ENUMS
+// =========================================================
+enum MemberRole {
+  founder
+  co_founder
+  software_engineer
+  mentor
+  policy_maker
+  investor
+  designer
+  product_manager
+  developer
+  other
+}
+
+enum NotificationType {
+  APP_UPDATE
+  NEW_MESSAGE
+  JOB_ALERT
+  APPLICATION_STATUS
+}
+
+enum ProjectStage {
+  idea
+  prototype
+  mvp
+  beta
+  launched
+  growth
+  scaling
+  profitable
+  acquired
+}
+
+enum ProjectType {
+  saas
+  marketplace
+  consumer_app
+  mobile_app
+  hardware
+  ai_ml
+  fintech
+  healthtech
+  edtech
+  climate
+  deeptech
+  web3
+  ecommerce
+  social
+  developer_tools
+  enterprise
+  creator_economy
+  agency
+  nonprofit
+  other
+}
+
+enum FundingStage {
+  bootstrapped
+  pre_seed
+  seed
+  series_a
+  series_b
+  series_c_plus
+  grant
+  revenue_funded
+  not_raising
+}
+
+enum ApplicationStatus {
+  pending
+  accepted
+  rejected
+  withdrawn
+}
+
+enum PostCategory {
+  update
+  ad
+  milestone
+  question
+  announcement
+  launch
+  hiring
+}
+
+enum JobApplicationStatus {
+  pending
+  accepted
+  rejected
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_USER // 🟢 Add this role to your schema
+}
+
+// =========================================================
+// USERS / AUTH
+// =========================================================
+model User {
+  id           String  @id @default(uuid())
+  email        String  @unique
+  passwordHash String
+  refreshHash  String?
+
+  role     UserRole @default(USER) // 🔥 for admin access
+  isBanned Boolean  @default(false) // 🔥 for ban feature
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile Profile?
+
+  notifications Notification[]
+  auditLogs     AuditLog[]  
+}
+
+model Profile {
+  id            String     @id // matches User.id
+  fullName      String     @default("")
+  headline      String     @default("")
+  bio           String     @default("")
+  role          MemberRole @default(other)
+  location      String     @default("")
+  company       String     @default("")
+  website       String     @default("")
+  linkedinUrl   String     @default("")
+  skills        String[]
+  lookingFor    String[]
+  openToConnect Boolean    @default(true)
+  avatarUrl     String     @default("")
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  user User @relation(fields: [id], references: [id], onDelete: Cascade)
+
+  followers           Connection[]         @relation("Following")
+  following           Connection[]         @relation("Follower")
+  projects            Project[]            @relation("ProjectOwner")
+  projectApplications ProjectApplication[]
+  projectMemberships  ProjectMember[]
+  postsAuthored       Post[]
+  postLikes           PostLike[]
+  postComments        PostComment[]
+  hostedEvents        Event[]
+  eventRsvps          EventAttendee[]
+  postedJobs          Job[]
+  jobApplications     JobApplication[]
+  conversationsA      Conversation[]       @relation("UserA")
+  conversationsB      Conversation[]       @relation("UserB")
+  messagesSent        Message[]
+
+  // ✅ ADD THIS LINE RIGHT HERE TO CLOSE THE RELATION LINK:
+  projectReviews ProjectReview[]
+}
+
+// =========================================================
+// SOCIAL: CONNECTIONS / FOLLOWS
+// =========================================================
+model Connection {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  Profile @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following Profile @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+}
+
+// =========================================================
+// PROJECTS
+// =========================================================
+model Project {
+  id            String       @id @default(uuid())
+  ownerId       String
+  name          String
+  tagline       String       @default("")
+  description   String       @default("")
+  pitch         String       @default("")
+  category      String       @default("")
+  industryTags  String[]
+  projectType   ProjectType  @default(other)
+  stage         ProjectStage @default(idea)
+  fundingStage  FundingStage @default(bootstrapped)
+  teamSize      Int          @default(1)
+  foundedYear   Int?
+  location      String       @default("")
+  websiteUrl    String       @default("")
+  demoUrl       String       @default("")
+  pitchDeckUrl  String       @default("")
+  pitchVideoUrl String       @default("")
+  githubUrl     String       @default("")
+  twitterUrl    String       @default("")
+  linkedinUrl   String       @default("")
+  logoUrl       String       @default("")
+  coverUrl      String       @default("")
+  techStack     String[]
+  lookingFor    String[]
+  isPublished   Boolean      @default(true)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  isVerified  Boolean  @default(false) // 🟢 ADD THIS LINE FOR THE VERIFICATION BADGE
+
+  owner        Profile              @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  applications ProjectApplication[]
+  members      ProjectMember[]
+  posts        Post[]
+
+  // ✅ ADD THIS LINE RIGHT HERE TO CLOSE THE RELATION LINK:
+  reviews ProjectReview[]
+
+  @@index([ownerId])
+  @@index([stage])
+  @@index([projectType])
+  @@index([isPublished])
+}
+
+model ProjectReview {
+  id         String   @id @default(uuid())
+  projectId  String
+  reviewerId String
+  rating     Int // Enforce 1 to 5 Stars in your validation layers
+  comment    String   @default("")
+  createdAt  DateTime @default(now())
+
+  project  Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  reviewer Profile @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, reviewerId]) // One high-integrity validation score per user per startup
+}
+
+model ProjectApplication {
+  id          String            @id @default(uuid())
+  projectId   String
+  applicantId String
+  role        String            @default("")
+  message     String            @default("")
+  status      ApplicationStatus @default(pending)
+  respondedAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  applicant Profile @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, applicantId])
+}
+
+model ProjectMember {
+  id        String   @id @default(uuid())
+  projectId String
+  userId    String
+  role      String   @default("")
+  joinedAt  DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, userId])
+}
+
+// =========================================================
+// CHATS / MESSAGES
+// =========================================================
+model Conversation {
+  id            String   @id @default(uuid())
+  userAId       String
+  userBId       String
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  userA Profile @relation("UserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB Profile @relation("UserB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  messages Message[]
+
+  @@unique([userAId, userBId])
+}
+
+model Message {
+  id             String    @id @default(uuid())
+  conversationId String
+  senderId       String
+  content        String
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       Profile      @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}
+
+// =========================================================
+// POSTS / FEED
+// =========================================================
+model Post {
+  id        String       @id @default(uuid())
+  authorId  String
+  content   String
+  category  PostCategory @default(update)
+  imageUrl  String       @default("")
+  linkUrl   String       @default("")
+  mediaType String       @default("image")
+  projectId String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  author  Profile  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  likes    PostLike[]
+  comments PostComment[]
+
+  @@index([createdAt])
+  @@index([authorId])
+}
+
+model PostLike {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+
+  post Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model PostComment {
+  id        String   @id @default(uuid())
+  postId    String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  post   Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author Profile @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+}
+
+// =========================================================
+// EVENTS
+// =========================================================
+model Event {
+  id          String    @id @default(uuid())
+  hostId      String
+  title       String
+  description String    @default("")
+  location    String    @default("")
+  startsAt    DateTime
+  endsAt      DateTime?
+  coverUrl    String    @default("")
+  latitude    Float?
+  longitude   Float?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  host      Profile         @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  attendees EventAttendee[]
+}
+
+model EventAttendee {
+  id        String   @id @default(uuid())
+  eventId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  event Event   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+// =========================================================
+// JOBS
+// =========================================================
+model Job {
+  id          String   @id @default(uuid())
+  posterId    String
+  startupName String
+  heading     String
+  role        String   @default("")
+  experience  String   @default("")
+  skills      String[]
+  description String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  poster       Profile          @relation(fields: [posterId], references: [id], onDelete: Cascade)
+  applications JobApplication[]
+
+  @@index([createdAt])
+}
+
+model JobApplication {
+  id          String               @id @default(uuid())
+  jobId       String
+  applicantId String
+  message     String               @default("")
+  status      JobApplicationStatus @default(pending)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  job       Job     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  applicant Profile @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, applicantId])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           // The recipient user ID
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  // Relationship link to your existing User model
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  userId      String   // Who did the action
+  action      String   // e.g., "PROJECT_VERIFIED", "USER_BAN_TOGGLE", "MEMBER_ACCEPTED"
+  details     String   // Plain language description of the exact change made
+  targetId    String?  // ID of the project, user, or post affected
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+}
