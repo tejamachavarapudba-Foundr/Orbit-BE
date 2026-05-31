@@ -3,10 +3,7 @@
   "builds": [
     {
       "src": "src/main.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["node_modules/.prisma/client/**"]
-      }
+      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -18,10 +15,5 @@
       "src": "/(.*)",
       "dest": "src/main.ts"
     }
-  ],
-  "build": {
-    "env": {
-      "DATABASE_URL": "@database_url"
-    }
-  }
+  ]
 }
