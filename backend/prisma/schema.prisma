@@ -182,7 +182,7 @@ model Post {
   id        String        @id @default(uuid())
   authorId  String
   content   String
-  category  PostCategory  @default(update)
+  category  PostCategory  @default(Update)
   imageUrl  String        @default("")
   linkUrl   String        @default("")
   mediaType String        @default("image")
@@ -381,13 +381,17 @@ enum ApplicationStatus {
 }
 
 enum PostCategory {
-  update
-  ad
-  milestone
-  question
-  announcement
-  launch
-  hiring
+  Update
+  Advertisement
+  Milestone
+  Query
+  Announcement
+  Launch
+  Hiring
+  Other
+  Service
+  Marketing
+  Funding
 }
 
 enum JobApplicationStatus {
