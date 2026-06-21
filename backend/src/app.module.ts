@@ -30,6 +30,10 @@ import { SearchModule } from './modules/search/search.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { PaymentsModule } from './modules/payments/payments.module';
+import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { ConnectionRequestsModule } from './modules/connection-requests/connection-requests.module';
+import { InvestorSnapshotModule } from './modules/investor-snapshot/investor-snapshot.module';
+import { MeetingRequestsModule } from './modules/meetingRequests/meetingRequests.module';
 
 @Module({
   imports: [
@@ -66,6 +70,10 @@ import { PaymentsModule } from './modules/payments/payments.module';
     AdminModule,
     AnalyticsModule,
     PaymentsModule,
+    OnboardingModule,
+    InvestorSnapshotModule,
+    ConnectionRequestsModule,
+    MeetingRequestsModule,
   ],
 })
 export class AppModule {}

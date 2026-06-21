@@ -2,6 +2,7 @@ import { Controller, Get, Param, Query, UseGuards, Post, Body, Req } from '@nest
 import { StartupsService } from './startups.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
+
 @UseGuards(JwtAuthGuard)
 @Controller('startups')
 export class StartupsController {
@@ -18,6 +19,11 @@ export class StartupsController {
   getTrending(@Query('limit') limit?: string) {
     const numericLimit = limit ? parseInt(limit, 10) : 10;
     return this.svc.findTrending(numericLimit);
+  }
+  
+  @Get('investor-discovery')
+  getInvestorDiscovery() {
+  return this.svc.getInvestorDiscovery();
   }
 
   // GET /startups/:id
@@ -36,4 +42,5 @@ export class StartupsController {
     const reviewerId = req.user.id || req.user.sub;
     return await this.svc.addProjectReview(id, reviewerId, dto);
   }
+  
 }

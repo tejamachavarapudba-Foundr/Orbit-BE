@@ -11,21 +11,60 @@ export class ProjectsService {
     private notificationsService: NotificationsService,
   ) {}
 
-  async list() { 
-    return this.prisma.project.findMany(); 
-  }
+  async list() {
+  return this.prisma.project.findMany({
+    include: {
+      investorSnapshot: true,
+    },
+  });
+}
 
   async create(userId: string, dto: any) {
-    return this.prisma.project.create({
-      data: {
-        name: dto.name,
-        description: dto.description,
-        stage: dto.stage,
-        projectType: dto.projectType,
-        owner: { connect: { id: userId } }
+  return this.prisma.project.create({
+    data: {
+      name: dto.name,
+      tagline: dto.tagline ?? "",
+      description: dto.description ?? "",
+      pitch: dto.pitch ?? "",
+      category: dto.category ?? "",
+
+      industryTags: dto.industryTags ?? [],
+
+      projectType: dto.projectType,
+      stage: dto.stage,
+      fundingStage: dto.fundingStage,
+
+      teamSize: dto.teamSize ?? 1,
+      foundedYear: dto.foundedYear,
+
+      location: dto.location ?? "",
+
+      websiteUrl: dto.websiteUrl ?? "",
+      demoUrl: dto.demoUrl ?? "",
+
+      pitchDeckUrl: dto.pitchDeckUrl ?? "",
+      pitchVideoUrl: dto.pitchVideoUrl ?? "",
+
+      githubUrl: dto.githubUrl ?? "",
+      twitterUrl: dto.twitterUrl ?? "",
+      linkedinUrl: dto.linkedinUrl ?? "",
+
+      logoUrl: dto.logoUrl ?? "",
+      coverUrl: dto.coverUrl ?? "",
+
+      techStack: dto.techStack ?? [],
+      lookingFor: dto.lookingFor ?? [],
+
+      isPublished: dto.isPublished ?? false,
+
+      owner: {
+        connect: {
+          id: userId
+        }
       }
-    });
-  }
+    }
+  });
+}
 
   // 1. SECURED UPDATE METHOD
   async update(id: string, userId: string, dto: any) {
@@ -313,4 +352,54 @@ export class ProjectsService {
     });
   }
 
+  async saveStartup(userId: string, projectId: string) {
+    return this.prisma.savedStartup.upsert({
+      where: {
+        userId_projectId: {
+          userId,
+          projectId,
+        },
+      },
+      update: {},
+      create: {
+        userId,
+        projectId,
+     },
+   });
+  }
+  
+  async unsaveStartup(userId: string, projectId: string) {
+    return this.prisma.savedStartup.delete({
+      where: {
+        userId_projectId: {
+          userId,
+          projectId,
+        },
+      },
+    });
+  }
+
+  async getSavedStartups(userId: string) {
+    return this.prisma.savedStartup.findMany({
+      where: {
+        userId,
+      },
+                              include: {
+        project: {
+          include: {
+            investorSnapshot: true,
+            members: {
+              include: {
+                user: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+  }
+  
 }

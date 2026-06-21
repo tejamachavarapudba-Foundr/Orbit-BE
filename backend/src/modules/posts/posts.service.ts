@@ -1,13 +1,16 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'; // Added NotFoundException
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
+import { PostCategory } from '@prisma/client';
 
 @Injectable()
 export class PostsService {
   constructor(private prisma: PrismaService) {}
 
   async list() {
-    return this.prisma.post.findMany();
+    return this.prisma.post.findMany({
+      where: {category: PostCategory.Launch}, //use the exact enum member
+    });
   }
 
   async findOne(id: string) {
@@ -29,7 +32,8 @@ export class PostsService {
       },
     });
   }
-
+  
+  
   async update(id: string, dto: any) {
     try {
       // Safely spread the dto fields and preserve enum type casting for categories

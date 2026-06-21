@@ -77,4 +77,35 @@ export class ProjectsController {
     return await this.svc.processApplicationStatus(id, userId, appId, dto);
   }
 
+  @Post(":id/save")
+  saveStartup(
+    @Param("id") id: string,
+    @Req() req: any,
+  ) {
+    return this.svc.saveStartup(
+      req.user.id,
+     id,
+    );
+  }
+
+  @Delete(":id/save")
+  unsaveStartup(
+    @Param("id") id: string,
+    @Req() req: any,
+  ) {
+    return this.svc.unsaveStartup(
+      req.user.id,
+      id,
+    );
+  }
+
+  @Get("saved/list")
+  getSavedStartups(
+    @Req() req: any,
+  ) {
+    return this.svc.getSavedStartups(
+      req.user.id,
+    );
+  }
+
 }

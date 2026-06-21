@@ -1,8 +1,9 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -26,4 +27,11 @@ export class AuthController {
    @Public() @Post('logout')
   logout(@Body('email')  email: string ) { // Use @Body('email') to get just the string
    return this.auth.logout(email); }
+
+   @Public() 
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK) // Explicitly returns a 200 status code instead of a 201
+  forgotPassword(@Body() dto: ForgotPasswordDto) { 
+    return this.auth.forgotPassword(dto.email); 
+  }
 }

@@ -1,15 +1,18 @@
 {
-  "version": 2,
-  "buildCommand": "npx prisma generate && npm run build",
-  "outputDirectory": "dist",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    }
+  ],
   "routes": [
     {
-      "src": "/api/(.*)",
-      "dest": "dist/main.js"
+      "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "dist/main.js"
+      "dest": "/index.html"
     }
   ]
 }

@@ -45,6 +45,8 @@ export class StartupsService {
     // 1. Fetch startups using only valid, lowercase schema relation names
     const startups = await this.prisma.project.findMany({
       include: {
+        investorSnapshot: true,
+
         _count: {
           select: {
             applications: true, // Core direct partner requests count
@@ -140,6 +142,9 @@ export class StartupsService {
         applications: true, // Includes partner applications
         posts: true,        // Includes social updates feed
         reviews: true,      // Includes 1-5 star ratings
+
+        investorSnapshot: true,
+
         members: {          // Fixes: Unknown field ProjectMember
           include: {
             user: true      // Fetches the user profile for each team member
@@ -192,6 +197,24 @@ export class StartupsService {
         project: { connect: { id: projectId } },
         reviewer: { connect: { id: reviewerId } }
       }
+    });
+  }
+
+  async getInvestorDiscovery() {
+    return this.prisma.project.findMany({
+      where: {
+        investorSnapshot: {
+          isCompleted: true,
+        },
+      },
+
+      include: {
+        investorSnapshot: true,
+      },
+
+      orderBy: {
+        createdAt: "desc",
+      },
     });
   }
 }

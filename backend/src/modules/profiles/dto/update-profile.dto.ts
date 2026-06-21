@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsBoolean, IsOptional, IsString, IsInt, IsObject } from 'class-validator';
 export class UpdateProfileDto {
   @IsOptional() @IsString() fullName?: string;
   @IsOptional() @IsString() headline?: string;
@@ -12,4 +12,9 @@ export class UpdateProfileDto {
   @IsOptional() @IsArray() skills?: string[];
   @IsOptional() @IsArray() lookingFor?: string[];
   @IsOptional() @IsBoolean() openToConnect?: boolean;
+  @IsOptional() @IsBoolean() onboardingCompleted?: boolean;
+  @IsOptional() @IsArray() onboardingGoals?:     string[];
+  @IsOptional() @IsInt() profileCompletion?:   number;
+  @IsOptional() @IsString() onboardingStep?:      string;
+  @IsOptional() @IsObject() roleProfile?: any;
 }
