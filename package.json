@@ -11,7 +11,7 @@
     "test": "jest",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "vercel-build": "expo export",
+    "vercel-build": "npm run build",
     "postinstall": "prisma generate"
   },
   "dependencies": {
