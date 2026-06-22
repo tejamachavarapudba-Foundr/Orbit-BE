@@ -2,22 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "src/main.ts",
+      "src": "src/api/index.ts",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/connections/(.*)",
-      "dest": "src/main.ts"
-    },
-    {
-      "src": "/api/media/upload",
-      "dest": "src/main.ts"
-      },
-    {
-      "src": "/api/(.*)",
-      "dest": "src/main.ts"
+      "src": "/(.*)",
+      "dest": "src/api/index.ts"
     }
   ]
 }
