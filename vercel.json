@@ -13,9 +13,8 @@
     },
     {
       "src": "/api/media/upload",
-      "dest": "src/main.ts",
-      "config": { "api": { "bodyParser": false } }
-    },
+      "dest": "src/main.ts"
+      },
     {
       "src": "/api/(.*)",
       "dest": "src/main.ts"
