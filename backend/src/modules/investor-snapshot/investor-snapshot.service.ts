@@ -10,27 +10,31 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class InvestorSnapshotService {
   constructor(private prisma: PrismaService) {}
 
+  // 1. Anyone logged in (or explicitly Investors) can view the snapshot
   async getByProject(projectId: string) {
-    return this.prisma.investorSnapshot.findUnique({
-      where: {
-        projectId,
-      },
+    const snapshot = await this.prisma.investorSnapshot.findUnique({
+      where: { projectId },
     });
+
+    if (!snapshot) {
+      throw new NotFoundException('Investor snapshot for this project not found');
+    }
+    return snapshot;
   }
 
+  // 2. Create snapshot (Only project owner)
   async create(projectId: string, userId: string, dto: any) {
     const project = await this.prisma.project.findUnique({
-      where: {
-        id: projectId,
-      },
+      where: { id: projectId },
     });
 
     if (!project) {
       throw new NotFoundException('Project not found');
     }
 
+    // Guard: Prevent users from modifying projects they do not own
     if (project.ownerId !== userId) {
-      throw new ForbiddenException();
+      throw new ForbiddenException('You do not own this project');
     }
 
     return this.prisma.investorSnapshot.create({
@@ -41,26 +45,31 @@ export class InvestorSnapshotService {
     });
   }
 
+  // 3. Update snapshot safely using Upsert
   async update(projectId: string, userId: string, dto: any) {
     const project = await this.prisma.project.findUnique({
-      where: {
-        id: projectId,
-      },
+      where: { id: projectId },
     });
 
     if (!project) {
-      throw new NotFoundException();
+      throw new NotFoundException('Project not found');
     }
 
+    // Guard: Prevent users from modifying projects they do not own
     if (project.ownerId !== userId) {
-      throw new ForbiddenException();
+      throw new ForbiddenException('You do not own this project');
     }
 
-    return this.prisma.investorSnapshot.update({
+    // FIX: Use upsert so it creates the record if it doesn't exist yet
+    return this.prisma.investorSnapshot.upsert({
       where: {
         projectId,
       },
-      data: dto,
+      update: dto,
+      create: {
+        ...dto,
+        projectId,
+      },
     });
   }
 }

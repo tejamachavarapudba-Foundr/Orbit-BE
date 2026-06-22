@@ -13,7 +13,7 @@ export class MediaService {
       // await this.s3.upload({ Bucket: 'my-bucket', Key: `${kind}/${uniqueFilename}`, Body: file.buffer }).promise();
 
       // 2. Return the secure access resource reference string back to the user
-      const mockStorageUrl = `https://startuphouze.com{kind}/${uniqueFilename}`;
+      const mockStorageUrl = `https://startuphouze.com/${kind}/${uniqueFilename}`;
 
       return {
         success: true,

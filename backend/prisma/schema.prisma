@@ -573,6 +573,15 @@ enum NotificationType {
   NEW_MESSAGE
   JOB_ALERT
   APPLICATION_STATUS
+  CONNECTION_REQUEST
+  CONNECTION_ACCEPTED
+  FOLLOW
+  PROJECT_INTEREST
+  PROJECT_REVIEW 
+  INVESTOR_INTEREST
+  MEETING_REQUEST
+  EVENT_REMINDER
+  SYSTEM_ALERT
 }
 
 enum ProjectStage {
@@ -642,6 +651,14 @@ enum PostCategory {
   Marketing
   Funding
 }
+
+enum PostMediaType {
+  IMAGE
+  VIDEO
+  GIF 
+  NONE 
+}
+
 
 enum JobApplicationStatus {
   pending

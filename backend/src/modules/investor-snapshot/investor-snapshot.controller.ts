@@ -7,6 +7,7 @@ import {
   Param,
   Req,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -15,15 +16,11 @@ import { InvestorSnapshotService } from './investor-snapshot.service';
 @UseGuards(JwtAuthGuard)
 @Controller('investor-snapshot')
 export class InvestorSnapshotController {
-  constructor(
-    private readonly svc: InvestorSnapshotService,
-  ) {}
+  constructor(private readonly svc: InvestorSnapshotService) {}
 
   // Route matches: GET /api/investor-snapshot/project/:projectId
   @Get('project/:projectId')
-  getSnapshot(
-    @Param('projectId') projectId: string,
-  ) {
+  getSnapshot(@Param('projectId') projectId: string) {
     return this.svc.getByProject(projectId);
   }
 
@@ -35,12 +32,8 @@ export class InvestorSnapshotController {
     @Req() req: any,
   ) {
     const userId = req.user?.id || req.user?.sub;
-
-    return this.svc.create(
-      projectId,
-      userId,
-      dto,
-    );
+    
+    return this.svc.create(projectId, userId, dto);
   }
 
   // Route matches: PATCH /api/investor-snapshot/project/:projectId
@@ -52,10 +45,6 @@ export class InvestorSnapshotController {
   ) {
     const userId = req.user?.id || req.user?.sub;
 
-    return this.svc.update(
-      projectId,
-      userId,
-      dto,
-    );
+    return this.svc.update(projectId, userId, dto);
   }
 }

@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service'; // Adjust relative path based on your folder setup
-import { MemberRole, ApplicationStatus, JobApplicationStatus } from '@prisma/client'; 
+import { MemberRole, ApplicationStatus, JobApplicationStatus, NotificationType } from '@prisma/client'; 
 
 @Injectable()
 export class ProjectsService {
@@ -85,17 +85,50 @@ export class ProjectsService {
     }
 
     try {
-      return await this.prisma.project.update({
-        where: { id },
-        data: {
-          ...dto,
-          stage: workingStage ? (workingStage as any) : undefined,
-          projectType: dto.projectType ? (dto.projectType as any) : undefined,
-        },
-      });
-    } catch (error) {
-      throw error;
+      const updatedProject =
+        await this.prisma.project.update({
+          where: { id },
+          data: {
+            ...dto,
+            stage: workingStage
+              ? (workingStage as any)
+              : undefined,
+            projectType: dto.projectType
+              ? (dto.projectType as any)
+              : undefined,
+          },
+       });
+
+     // Startup published notification
+     if (
+       !project.isPublished &&
+       updatedProject.isPublished
+     ) {
+       const investors =
+         await this.prisma.user.findMany({
+           where: {
+             profile: {
+               role: {
+                 in: ["investor", "advisor"],
+                },
+              },
+           },
+          });
+
+        for (const investor of investors) {
+          await this.notificationsService.createNotification(
+            investor.id,
+            NotificationType.SYSTEM_ALERT,
+            "New Startup Published",
+            `${updatedProject.name} is now available for review.`
+          );
+        }
     }
+
+    return updatedProject;
+  } catch (error) {
+    throw error;
+  }
   }
 
   async findOne(id: string) {
@@ -367,7 +400,7 @@ export class ProjectsService {
      },
    });
   }
-  
+
   async unsaveStartup(userId: string, projectId: string) {
     return this.prisma.savedStartup.delete({
       where: {
