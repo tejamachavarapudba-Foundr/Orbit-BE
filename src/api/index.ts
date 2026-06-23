@@ -27,6 +27,11 @@ async function bootstrap() {
 }
 
 export default async function handler(req: any, res: any) {
-  const server = await bootstrap();
-  return server(req, res);
+  try {
+    const server = await bootstrap();
+    return server(req, res);
+  } catch (error) {
+    console.error('SERVERLESS ERROR:', error);
+    throw error;
+  }
 }
