@@ -4,34 +4,50 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
 import { AppModule } from '../app.module';
 
-let cachedServer: any;  
+let cachedServer: any;
 
 async function bootstrap() {
-  if (!cachedServer) {
-    const expressApp = express();
+  try {
+    if (!cachedServer) {
+      console.log('Starting Nest app...');
 
-    const nestApp = await NestFactory.create(
-      AppModule,
-      new ExpressAdapter(expressApp),
-    );
+      const expressApp = express();
 
-    nestApp.enableCors();
-    nestApp.setGlobalPrefix('api');
+      const nestApp = await NestFactory.create(
+        AppModule,
+        new ExpressAdapter(expressApp),
+      );
 
-    await nestApp.init();
+      console.log('Nest app created');
 
-    cachedServer = serverlessExpress({ app: expressApp });
+      nestApp.enableCors();
+      nestApp.setGlobalPrefix('api');
+
+      await nestApp.init();
+
+      console.log('Nest app initialized');
+
+      cachedServer = serverlessExpress({ app: expressApp });
+
+      console.log('Serverless Express initialized');
+    }
+
+    return cachedServer;
+  } catch (err) {
+    console.error('BOOTSTRAP ERROR:', err);
+    throw err;
   }
-
-  return cachedServer;
 }
 
 export default async function handler(req: any, res: any) {
   try {
+    console.log('Incoming request:', req.url);
+
     const server = await bootstrap();
+
     return server(req, res);
-  } catch (error) {
-    console.error('SERVERLESS ERROR:', error);
-    throw error;
+  } catch (err) {
+    console.error('HANDLER ERROR:', err);
+    throw err;
   }
 }
