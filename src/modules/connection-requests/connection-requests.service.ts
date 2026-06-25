@@ -189,6 +189,20 @@ export class ConnectionRequestsService {
           followingId: request.requesterId,
         },
       }),
+      // 🟢 NEW: Automatically instantiate a Chat Room and pre-populate it with the connection note!
+      this.prisma.conversation.create({
+        data: {
+        userAId: request.requesterId,
+        userBId: request.recipientId,
+        lastMessageAt: new Date(),
+        messages: request.note ? {
+           create: {
+             senderId: request.requesterId,
+             content: request.note, // Inserts their note right into the chat thread!
+            }
+          } : undefined
+        }
+      })
     ]);
 
     return {

@@ -19,7 +19,7 @@ export class ConnectionRequestsController {
     private readonly service: ConnectionRequestsService,
   ) {}
 
-  @Post()
+  @Post('requests')
   create(
     @CurrentUser() user: { id: string },
     @Body()

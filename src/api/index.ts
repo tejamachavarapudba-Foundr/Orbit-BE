@@ -12,7 +12,10 @@ async function bootstrap() {
       console.log('Starting Nest app...');
 
       const expressApp = express();
-
+      
+      const compiled = require('../dist/api/index.js');
+      module.exports = compiled.default || compiled;
+      
       const nestApp = await NestFactory.create(
         AppModule,
         new ExpressAdapter(expressApp),
