@@ -670,6 +670,8 @@ enum UserRole {
   USER
   ADMIN
   SUPER_USER
+  FOUNDER
+  INVESTOR
 }
 
 enum EventStatus {

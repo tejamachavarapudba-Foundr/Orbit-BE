@@ -21,13 +21,17 @@ export class MeetingRequestsController {
     return this.meetingRequestsService.getInvestorRequests(user.id);
   }
 
-  @Get('startup')
-  async findStartupRequests(@Req() req: any) {
-    // If your founder accounts also default to "USER", add 'USER' to this array too
-    const user = this.extractAndVerifyUser(req, ['FOUNDER']);
-    const startupId = user.startupId || user.id;
+    @Get('startup/:id')
+  async findStartupRequests(
+    @Param('id') startupId: string,
+    @Req() req: any
+  ) {
+    // Verifies the user is authorized as a FOUNDER before returning data
+    this.extractAndVerifyUser(req, ['FOUNDER']);
+    
     return this.meetingRequestsService.getFounderRequests(startupId);
   }
+
 
   @Get('admin')
   async findAdminRequests(@Req() req: any) {
