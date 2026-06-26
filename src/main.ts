@@ -1,14 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { configure as serverlessExpress } from '@codegenie/serverless-express';
 
-let cachedApp: any;
+let cachedServer: any;
 
 export async function bootstrapApp() {
-  if (!cachedApp) {
+  if (!cachedServer) {
     const app = await NestFactory.create(AppModule);
     
-    // Enable CORS so your React Native app can talk to the backend safely
     app.enableCors();
     app.setGlobalPrefix('api');
     app.useGlobalPipes(
@@ -16,9 +16,11 @@ export async function bootstrapApp() {
     );
     
     await app.init();
-    cachedApp = app;
+    
+    const expressApp = app.getHttpAdapter().getInstance();
+    cachedServer = serverlessExpress({ app: expressApp });
   }
-  return cachedApp;
+  return cachedServer;
 }
 
 async function bootstrap() {
@@ -37,13 +39,12 @@ async function bootstrap() {
   }
 }
 
-
 bootstrap();
+
 // ==========================================================
-// 🎯 STEP 3: THE VERCEL SERVERLESS BRIDGE HANDLER (ADD THIS)
+// 🎯 FIXED: THE VERCEL SERVERLESS BRIDGE HANDLER WITH PROXY
 // ==========================================================
 export default async (req: any, res: any) => {
-  const app = await bootstrapApp();
-  const server = app.getHttpAdapter().getInstance();
+  const server = await bootstrapApp();
   return server(req, res);
 };
