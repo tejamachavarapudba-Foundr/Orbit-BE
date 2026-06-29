@@ -27,6 +27,7 @@
     "@nestjs/swagger": "^7.4.0",
     "@nestjs/websockets": "^10.3.10",
     "@prisma/client": "^5.18.0",
+    "@supabase/supabase-js": "^2.108.2",
     "aws-sdk": "^2.1654.0",
     "bcrypt": "^6.0.0",
     "bull": "^4.15.1",
@@ -59,7 +60,6 @@
     "typescript": "^5.5.3"
   },
   "engines": {
-  "node": "22.x"
+    "node": "22.x"
+  }
 }
-}
-

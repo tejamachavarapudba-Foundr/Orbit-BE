@@ -7,34 +7,39 @@ import { UpdateStatusDto } from './dto/update-status.dto';
 export class MeetingRequestsController {
   constructor(private readonly meetingRequestsService: MeetingRequestsService) {}
 
-  @Post()
+    @Post()
   async create(@Req() req: any, @Body() createDto: CreateMeetingRequestDto) {
-    // MODIFIED: Accepts both INVESTOR and USER roles safely
     const user = this.extractAndVerifyUser(req, ['INVESTOR', 'USER']);
-    return this.meetingRequestsService.createRequest(user.id, createDto);
+    
+    // Fallback chain to catch the correct ID property from your JWT configuration
+    const investorId = user.id || user.sub || user.userId; 
+    
+    return this.meetingRequestsService.createRequest(investorId, createDto);
   }
 
   @Get('my')
   async findInvestorRequests(@Req() req: any) {
-    // MODIFIED: Accepts both INVESTOR and USER roles safely
     const user = this.extractAndVerifyUser(req, ['INVESTOR', 'USER']);
-    return this.meetingRequestsService.getInvestorRequests(user.id);
+    
+    // Fallback chain to catch the correct ID property from your JWT configuration
+    const investorId = user.id || user.sub || user.userId;
+    
+    return this.meetingRequestsService.getInvestorRequests(investorId);
   }
 
-    @Get('startup/:id')
+
+  @Get('startup/:id')
   async findStartupRequests(
     @Param('id') startupId: string,
     @Req() req: any
   ) {
-    // Verifies the user is authorized as a FOUNDER before returning data
     this.extractAndVerifyUser(req, ['FOUNDER']);
-    
     return this.meetingRequestsService.getFounderRequests(startupId);
   }
 
-
   @Get('admin')
   async findAdminRequests(@Req() req: any) {
+    console.log("ADMIN USER:", req.user);
     this.extractAndVerifyUser(req, ['ADMIN']);
     return this.meetingRequestsService.getAdminRequests();
   }
@@ -49,16 +54,15 @@ export class MeetingRequestsController {
     return this.meetingRequestsService.updateRequestStatus(id, updateStatusDto.status);
   }
 
-  // Updated validator helper to process multiple matching roles smoothly
   private extractAndVerifyUser(req: any, allowedRoles: string[]) {
     let user = req.user;
 
-    // Fallback extraction block if passport middleware is detached
     if (!user && req.headers.authorization) {
       try {
         const token = req.headers.authorization.split(' ')[1];
         const payloadBase64 = token.split('.')[1];
-        user = JSON.parse(Buffer.from(payloadBase64, 'base64').toString());
+        // Ensure accurate UTF-8 parsing from Base64 buffers
+        user = JSON.parse(Buffer.from(payloadBase64, 'base64').toString('utf8'));
       } catch (e) {
         throw new UnauthorizedException('Invalid or malformed token payload layout.');
       }
