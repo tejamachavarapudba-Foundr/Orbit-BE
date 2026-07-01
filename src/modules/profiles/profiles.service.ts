@@ -20,7 +20,8 @@ const validProfileRoles = new Set([
 
 @Injectable()
 export class ProfilesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly  prisma: PrismaService,    
+  ) {}
 
   list() {
     return this.prisma.profile.findMany({
@@ -187,37 +188,29 @@ export class ProfilesService {
     }
   }
 
-  async updateAvatar(id: string, avatarUrl: string) {
-    const profile = await this.prisma.profile.findUnique({
-      where: {
-        id,
-      },
-    });
+  async updateAvatar(
+     userId: string,
+     avatarUrl: string,
+    ) {
+       const profile =
+         await this.prisma.profile.findUnique({
+           where: {
+           id:userId,
+          },
+        });
 
     if (!profile) {
-      throw new NotFoundException('Profile not found');
+      throw new NotFoundException(
+        'Profile not found',
+      );
     }
 
-    await this.prisma.profile.update({
+    return this.prisma.profile.update({
       where: {
-        id,
+        id: profile.id,
       },
       data: {
-        avatarUrl,
-      },
-    });
-
-    return await this.prisma.profile.findUnique({
-      where: {
-        id,
-      },
-
-      include: {
-        founderProfile: true,
-        investorProfile: true,
-        advisorProfile: true,
-        professionalProfile: true,
-        serviceProviderProfile: true,
+       avatarUrl,
       },
     });
   }

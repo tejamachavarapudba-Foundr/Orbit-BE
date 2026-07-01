@@ -4,76 +4,73 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  passwordHash  String
-  refreshHash   String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  isBanned      Boolean        @default(false)
-  role          UserRole       @default(USER)
-  auditLogs     AuditLog[]
-  notifications Notification[]
-  profile       Profile?
-  meetingRequests MeetingRequest[]
-
-  savedStartups SavedStartup[]
-  resetToken        String?   @unique
+  id                String           @id @default(uuid())
+  email             String           @unique
+  passwordHash      String
+  refreshHash       String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  isBanned          Boolean          @default(false)
+  role              UserRole         @default(USER)
+  resetToken        String?          @unique
   resetTokenExpires DateTime?
-  avatarUrl  String?
+  auditLogs         AuditLog[]
+  meetingRequests   MeetingRequest[]
+  notifications     Notification[]
+  profile           Profile?
+  savedStartups     SavedStartup[]
 }
 
 model Profile {
-  id                     String                  @id
-  fullName               String                  @default("")
-  headline               String                  @default("")
-  bio                    String                  @default("")
-  role                   MemberRole              @default(other)
-  location               String                  @default("")
-  company                String                  @default("")
-  website                String                  @default("")
-  linkedinUrl            String                  @default("")
-  skills                 String[]
-  lookingFor             String[]
-  openToConnect          Boolean                 @default(true)
-  avatarUrl              String                  @default("")
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  onboardingCompleted    Boolean                 @default(false)
-  onboardingGoals        String[]
-  onboardingStep         String?
-  profileCompletion      Int                     @default(0)
-  advisorProfile         AdvisorProfile?
-  following              Connection[]            @relation("Follower")
-  followers              Connection[]            @relation("Following")
-  conversationsA         Conversation[]          @relation("UserA")
-  conversationsB         Conversation[]          @relation("UserB")
-  hostedEvents           Event[]
-  eventRsvps             EventAttendee[]
-  founderProfile         FounderProfile?
-  investorProfile        InvestorProfile?
-  postedJobs             Job[]
-  jobApplications        JobApplication[]
-  messagesSent           Message[]
-  postsAuthored          Post[]
-  postComments           PostComment[]
-  postLikes              PostLike[]
-  professionalProfile    ProfessionalProfile?
-  user                   User                    @relation(fields: [id], references: [id], onDelete: Cascade)
-  projects               Project[]               @relation("ProjectOwner")
-  projectApplications    ProjectApplication[]
-  projectMemberships     ProjectMember[]
-  projectReviews         ProjectReview[]
-  serviceProviderProfile ServiceProviderProfile?
-
-  sentConnectionRequests     ConnectionRequest[] @relation("ConnectionRequestRequester")
-  receivedConnectionRequests ConnectionRequest[] @relation("ConnectionRequestRecipient")
+  id                         String                  @id
+  fullName                   String                  @default("")
+  headline                   String                  @default("")
+  bio                        String                  @default("")
+  role                       MemberRole              @default(other)
+  location                   String                  @default("")
+  company                    String                  @default("")
+  website                    String                  @default("")
+  linkedinUrl                String                  @default("")
+  skills                     String[]
+  lookingFor                 String[]
+  openToConnect              Boolean                 @default(true)
+  avatarUrl                  String                  @default("")
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+  onboardingCompleted        Boolean                 @default(false)
+  onboardingGoals            String[]
+  onboardingStep             String?
+  profileCompletion          Int                     @default(0)
+  advisorProfile             AdvisorProfile?
+  following                  Connection[]            @relation("Follower")
+  followers                  Connection[]            @relation("Following")
+  receivedConnectionRequests ConnectionRequest[]     @relation("ConnectionRequestRecipient")
+  sentConnectionRequests     ConnectionRequest[]     @relation("ConnectionRequestRequester")
+  conversationsA             Conversation[]          @relation("UserA")
+  conversationsB             Conversation[]          @relation("UserB")
+  hostedEvents               Event[]
+  eventRsvps                 EventAttendee[]
+  founderProfile             FounderProfile?
+  investorProfile            InvestorProfile?
+  postedJobs                 Job[]
+  jobApplications            JobApplication[]
+  messagesSent               Message[]
+  postsAuthored              Post[]
+  postComments               PostComment[]
+  postLikes                  PostLike[]
+  professionalProfile        ProfessionalProfile?
+  user                       User                    @relation(fields: [id], references: [id], onDelete: Cascade)
+  projects                   Project[]               @relation("ProjectOwner")
+  projectApplications        ProjectApplication[]
+  projectMemberships         ProjectMember[]
+  projectReviews             ProjectReview[]
+  serviceProviderProfile     ServiceProviderProfile?
 }
 
 model FounderProfile {
@@ -154,19 +151,15 @@ model Connection {
 }
 
 model ConnectionRequest {
-  id String @id @default(uuid())
-
+  id          String   @id @default(uuid())
   requesterId String
   recipientId String
-
-  note   String @default("")
-  status String @default("pending")
-
-  requester Profile @relation("ConnectionRequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
-  recipient Profile @relation("ConnectionRequestRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  note        String   @default("")
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  recipient   Profile  @relation("ConnectionRequestRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  requester   Profile  @relation("ConnectionRequestRequester", fields: [requesterId], references: [id], onDelete: Cascade)
 
   @@unique([requesterId, recipientId])
   @@index([requesterId])
@@ -202,16 +195,16 @@ model Project {
   isPublished      Boolean              @default(true)
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
-  isInvestorReady  Boolean              @default(false)
   isVerified       Boolean              @default(false)
+  isInvestorReady  Boolean              @default(false)
+  investorSnapshot InvestorSnapshot?
+  meetingRequests  MeetingRequest[]
   posts            Post[]
   owner            Profile              @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   applications     ProjectApplication[]
   members          ProjectMember[]
   reviews          ProjectReview[]
-  investorSnapshot InvestorSnapshot?
-  savedBy SavedStartup[]
-  meetingRequests MeetingRequest[]
+  savedBy          SavedStartup[]
 
   @@index([ownerId])
   @@index([stage])
@@ -223,11 +216,9 @@ model SavedStartup {
   id        String   @id @default(uuid())
   userId    String
   projectId String
-
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
   createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, projectId])
 }
@@ -373,30 +364,21 @@ model EventAttendee {
 }
 
 model MeetingRequest {
-  id                String   @id @default(uuid())
-
-  startupId         String
-  investorId        String
-
-  purpose           String
-
-  preferredDate1    DateTime
-  preferredTime1    String
-
-  preferredDate2    DateTime?
-  preferredTime2    String?
-
+  id                 String    @id @default(uuid())
+  startupId          String
+  investorId         String
+  purpose            String
+  preferredDate1     DateTime
+  preferredTime1     String
+  preferredDate2     DateTime?
+  preferredTime2     String?
   expectedInvestment String?
-
-  message           String?
-
-  status            String @default("pending")
-
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  startup           Project @relation(fields: [startupId], references: [id])
-  investor          User @relation(fields: [investorId], references: [id])
+  message            String?
+  status             String    @default("pending")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  investor           User      @relation(fields: [investorId], references: [id])
+  startup            Project   @relation(fields: [startupId], references: [id])
 }
 
 model Job {
@@ -457,101 +439,76 @@ model AuditLog {
 }
 
 model InvestorSnapshot {
-  id String @id @default(uuid())
-
-  projectId String  @unique
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  targetCustomers   String @default("")
-  businessModel     String @default("")
-  revenueStreams    String @default("")
-  marketOpportunity String @default("")
-
-  totalUsers          Int?
-  activeUsers         Int?
-  payingCustomers     Int?
-  enterpriseCustomers Int?
-
-  customerGrowthRate Float?
-  revenueGrowthRate  Float?
-
-  mrr          Float?
-  arr          Float?
-  cashBalance  Float?
-  burnRate     Float?
-  runwayMonths Float?
-
-  grossMargin Float?
-
-  cac         Float?
-  ltv         Float?
-  ltvCacRatio Float?
-
-  churnRate Float?
-
-  ebitda        Float?
-  ebitdaPercent Float?
-
-  currentRound  String @default("")
-  amountRaising Float?
-  equityOffered Float?
-
-  minimumCheckSize Float?
-  maximumCheckSize Float?
-
-  founderOwnership  Float?
-  employeeEsop      Float?
-  investorOwnership Float?
-
-  year1Revenue Float?
-  year2Revenue Float?
-  year3Revenue Float?
-
-  projectedCustomers Int?
-  projectedTeamSize  Int?
-
-  breakEvenDate DateTime?
-
-  topRisks              String @default("")
-  competition           String @default("")
-  operationalChallenges String @default("")
-  regulatoryRisks       String @default("")
-  mitigationPlan        String @default("")
-
-  founderLinkedin String @default("")
-  founderTwitter  String @default("")
-  founderGithub   String @default("")
-
-  isFounderVerified Boolean @default(false)
-  hasPitchDeck      Boolean @default(false)
-  hasFinancials     Boolean @default(false)
-  isInvestorReady   Boolean @default(false)
-
-  pitchDeckUrl           String @default("")
-  financialProjectionUrl String @default("")
-  dataRoomUrl            String @default("")
-
-  startupVision    String @default("")
-  problemStatement String @default("")
-  solutionSummary  String @default("")
-
-  keyPartnerships   String @default("")
-  majorAchievements String @default("")
-
-  useOfFunds               String[]
-  expectedRunwayAfterRaise Float?
+  id                       String    @id @default(uuid())
+  projectId                String    @unique
+  targetCustomers          String    @default("")
+  businessModel            String    @default("")
+  revenueStreams           String    @default("")
+  marketOpportunity        String    @default("")
+  totalUsers               Int?
+  activeUsers              Int?
+  payingCustomers          Int?
+  enterpriseCustomers      Int?
+  customerGrowthRate       Float?
+  revenueGrowthRate        Float?
+  mrr                      Float?
+  arr                      Float?
+  cashBalance              Float?
+  burnRate                 Float?
+  runwayMonths             Float?
+  grossMargin              Float?
+  cac                      Float?
+  ltv                      Float?
+  ltvCacRatio              Float?
+  churnRate                Float?
+  ebitda                   Float?
+  ebitdaPercent            Float?
+  currentRound             String    @default("")
+  amountRaising            Float?
+  equityOffered            Float?
+  minimumCheckSize         Float?
+  maximumCheckSize         Float?
+  founderOwnership         Float?
+  employeeEsop             Float?
+  investorOwnership        Float?
+  year1Revenue             Float?
+  year2Revenue             Float?
+  year3Revenue             Float?
+  projectedCustomers       Int?
+  projectedTeamSize        Int?
+  breakEvenDate            DateTime?
+  topRisks                 String    @default("")
+  competition              String    @default("")
+  operationalChallenges    String    @default("")
+  regulatoryRisks          String    @default("")
+  mitigationPlan           String    @default("")
+  founderLinkedin          String    @default("")
+  pitchDeckUrl             String    @default("")
+  financialProjectionUrl   String    @default("")
+  dataRoomUrl              String    @default("")
+  registrationDocUrl       String    @default("")
+  gstDocUrl                String    @default("")
+  govtIdDocUrl             String    @default("")
+  completionPercentage     Int       @default(0)
+  isCompleted              Boolean   @default(false)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
   availablePool            Float?
-  keyAssumptions           String   @default("")
-
-  registrationDocUrl String @default("")
-  gstDocUrl          String @default("")
-  govtIdDocUrl       String @default("")
-
-  completionPercentage Int     @default(0)
-  isCompleted          Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  expectedRunwayAfterRaise Float?
+  founderGithub            String    @default("")
+  founderTwitter           String    @default("")
+  hasFinancials            Boolean   @default(false)
+  hasPitchDeck             Boolean   @default(false)
+  isFounderVerified        Boolean   @default(false)
+  isInvestorReady          Boolean   @default(false)
+  keyAssumptions           String    @default("")
+  keyPartnerships          String    @default("")
+  majorAchievements        String    @default("")
+  problemStatement         String    @default("")
+  solutionSummary          String    @default("")
+  startupVision            String    @default("")
+  useOfFunds               String[]
+  project                  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 enum MemberRole {
@@ -579,7 +536,7 @@ enum NotificationType {
   CONNECTION_ACCEPTED
   FOLLOW
   PROJECT_INTEREST
-  PROJECT_REVIEW 
+  PROJECT_REVIEW
   INVESTOR_INTEREST
   MEETING_REQUEST
   EVENT_REMINDER
@@ -657,10 +614,9 @@ enum PostCategory {
 enum PostMediaType {
   IMAGE
   VIDEO
-  GIF 
-  NONE 
+  GIF
+  NONE
 }
-
 
 enum JobApplicationStatus {
   pending

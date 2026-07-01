@@ -84,15 +84,16 @@ export class StorageService {
 
   private generateFilename(
     originalName: string,
+    prefix?: string,
   ) {
-    return `${randomUUID()}${extname(originalName)}`;
+    return `${prefix ?? randomUUID()}${extname(originalName)}`;
   }
 
   private buildPath(
-    type: StorageType,
+    entityId: string,
     filename: string,
   ) {
-    return `${type}/${filename}`;
+    return `${entityId}/${filename}`;
   }
 
   private getPublicUrl(
@@ -236,18 +237,20 @@ export class StorageService {
      async upload(
     file: Express.Multer.File,
     type: StorageType,
+    entityId?: string,
   ): Promise<UploadResult> {
     if (!file) {
       throw new BadRequestException('File is required');
     }
-
+    
+    
     this.validate(file, type);
 
     const bucket = this.getBucket(type);
 
     const filename = this.generateFilename(file.originalname);
 
-    const path = this.buildPath(type, filename);
+    const path = this.buildPath(entityId ?? type, filename);
 
     const startedAt = Date.now();
 
@@ -296,11 +299,10 @@ export class StorageService {
     .remove([path]);
 
   if (error) {
+    console.error('SUPABASE STORAGE ERROR:', error);
     this.logger.error(error.message);
 
-    throw new InternalServerErrorException(
-      'Failed to delete file.',
-    );
+    throw new InternalServerErrorException(error.message);
   }
 
   return {
@@ -367,4 +369,25 @@ export class StorageService {
   return data.find(
     (file) => file.name === fileName,
   );
-}}
+  }
+
+  extractPathFromUrl(
+      url: string,
+  ) {
+      const marker = "/object/public/";
+
+      const index = url.indexOf(marker);
+
+      if (index === -1) {
+        return "";
+      }
+
+      const path = url.substring(
+        index + marker.length,
+      );
+
+      return path.substring(
+        path.indexOf("/") + 1,
+      );
+  }
+}
