@@ -34,6 +34,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { ConnectionRequestsModule } from './modules/connection-requests/connection-requests.module';
 import { InvestorSnapshotModule } from './modules/investor-snapshot/investor-snapshot.module';
 import { MeetingRequestsModule } from './modules/meetingRequests/meetingRequests.module';
+import { StorageModule } from './modules/storage/storage.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { MeetingRequestsModule } from './modules/meetingRequests/meetingRequests
     InvestorSnapshotModule,
     ConnectionRequestsModule,
     MeetingRequestsModule,
+    StorageModule,
   ],
 })
 export class AppModule {}

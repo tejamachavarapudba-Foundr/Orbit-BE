@@ -26,6 +26,7 @@ model User {
   savedStartups SavedStartup[]
   resetToken        String?   @unique
   resetTokenExpires DateTime?
+  avatarUrl  String?
 }
 
 model Profile {
