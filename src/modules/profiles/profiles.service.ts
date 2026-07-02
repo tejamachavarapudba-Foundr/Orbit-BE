@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { StorageService } from '../storage/storage.service';
+import { StorageType } from '../storage/enums/storage-type.enum';
 
 const validProfileRoles = new Set([
   'founder',
@@ -20,7 +22,8 @@ const validProfileRoles = new Set([
 
 @Injectable()
 export class ProfilesService {
-  constructor(private readonly  prisma: PrismaService,    
+  constructor(private readonly  prisma: PrismaService,
+    private readonly storageService: StorageService,  
   ) {}
 
   list() {
@@ -189,29 +192,73 @@ export class ProfilesService {
   }
 
   async updateAvatar(
-     userId: string,
-     avatarUrl: string,
-    ) {
-       const profile =
-         await this.prisma.profile.findUnique({
-           where: {
-           id:userId,
-          },
-        });
+  userId: string,
+  file: Express.Multer.File,
+) {
+  const profile = await this.prisma.profile.findUnique({
+    where: {
+      id: userId,
+    },
+  });
 
-    if (!profile) {
-      throw new NotFoundException(
-        'Profile not found',
+  if (!profile) {
+    throw new NotFoundException(
+      'Profile not found',
+    );
+  }
+
+  // Upload new avatar
+  const upload = await this.storageService.upload(
+    file,
+    StorageType.AVATAR,
+    profile.id,
+  );
+
+  // Delete previous avatar (if exists)
+  if (profile.avatarUrl) {
+    try {
+      const oldPath =
+        this.storageService.extractPathFromUrl(
+          profile.avatarUrl,
+        );
+
+      if (oldPath) {
+        await this.storageService.delete(
+          StorageType.AVATAR,
+          oldPath,
+        );
+      }
+    } catch (error) {
+      // Do not fail avatar update if old file deletion fails
+      console.warn(
+        'Failed to delete previous avatar',
+        error,
       );
     }
+  }
 
-    return this.prisma.profile.update({
-      where: {
-        id: profile.id,
-      },
-      data: {
-       avatarUrl,
-      },
-    });
+  // Save new URL
+  await this.prisma.profile.update({
+    where: {
+      id: profile.id,
+    },
+    data: {
+      avatarUrl: upload.url,
+    },
+  });
+
+  // Return updated profile
+  return this.prisma.profile.findUnique({
+    where: {
+      id: profile.id,
+    },
+    include: {
+      founderProfile: true,
+      investorProfile: true,
+      advisorProfile: true,
+      professionalProfile: true,
+      serviceProviderProfile: true,
+    },
+  });
   }
 }

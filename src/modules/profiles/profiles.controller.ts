@@ -4,6 +4,9 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { UpdateAvatarDto } from './dto/update-avatar.dto';
+import { UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 
 @UseGuards(JwtAuthGuard)
 @Controller('profiles')
@@ -11,13 +14,21 @@ export class ProfilesController {
   constructor(private svc: ProfilesService) {}
 
   @Patch('me/avatar')
-  updateAvatar(
+  @UseInterceptors(
+  FileInterceptor('file', {
+    storage: memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024,
+    },
+  }),
+)
+updateAvatar(
   @CurrentUser() user: { id: string },
-  @Body() dto: UpdateAvatarDto,
+  @UploadedFile() file: Express.Multer.File,
 ) {
   return this.svc.updateAvatar(
     user.id,
-    dto.avatarUrl,
+    file,
   );
 }
 
