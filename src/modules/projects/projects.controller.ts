@@ -2,6 +2,9 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Req, Quer
 import { ProjectsService } from './projects.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { MemberRole } from '@prisma/client';
+import { UploadedFile, UseInterceptors } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 
 @UseGuards(JwtAuthGuard)
 @Controller('projects')
@@ -17,6 +20,30 @@ export class ProjectsController {
   create(@Body() dto: any, @Req() req: any) {
     const userId = req.user.id || req.user.sub;
     return this.svc.create(userId, dto);
+  }
+
+  @Patch(':id/logo')
+  @UseInterceptors(
+  FileInterceptor('file', {
+    storage: memoryStorage(),
+    limits: {
+      fileSize: 5 * 1024 * 1024,
+    },
+  }),
+  )
+  updateLogo(
+  @Param('id') id: string,
+  @UploadedFile() file: Express.Multer.File,
+  @Req() req: any,
+  ) {
+  const userId =
+    req.user.id || req.user.sub;
+
+  return this.svc.updateLogo(
+    id,
+    userId,
+    file,
+  );
   }
 
     @Patch(':id')

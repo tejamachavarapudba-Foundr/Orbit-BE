@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import { SearchService } from './search.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
@@ -9,7 +9,7 @@ export class SearchController {
 
   // GET /search?search=ai&type=projects&role=Founder&stage=Idea&category=SaaS
   @Get()
-  async list(
+  async list( @Req() req: any,
     @Query('search') search?: string,
     @Query('type') type: string = 'all',
     @Query('role') role?: string,
@@ -21,12 +21,13 @@ export class SearchController {
     
     // Aligns perfectly with the flat parameters expected by your search.service.ts
     return this.svc.list(
+      req.user.id,
       search?.trim() || '',
       type,
       role,
       parsedLimit,
       stage,
-      category
+      category,
     );
   }
 }

@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Req, BadRequestException } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+//import { Query } from '@nestjs/common';
 
 @UseGuards(JwtAuthGuard)
 @Controller('messages')
@@ -41,5 +42,17 @@ export class MessagesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.svc.remove(id);
+  }
+  @Get(':conversationId/search')
+  searchMessages(
+    @Param('conversationId') conversationId: string,
+    @Query('q') query: string,
+    @Req() req: any,
+  ) {
+    return this.svc.searchMessages(
+      conversationId,
+      req.user.id,
+      query,
+    );
   }
 }

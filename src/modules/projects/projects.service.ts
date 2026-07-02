@@ -2,13 +2,16 @@ import { Injectable, NotFoundException, BadRequestException, ConflictException, 
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service'; // Adjust relative path based on your folder setup
 import { MemberRole, ApplicationStatus, JobApplicationStatus, NotificationType } from '@prisma/client'; 
+import { StorageService } from '../storage/storage.service';
+import { StorageType } from '../storage/enums/storage-type.enum';
 
 @Injectable()
 export class ProjectsService {
   // Inject NotificationsService alongside PrismaService
   constructor(
-    private prisma: PrismaService,
-    private notificationsService: NotificationsService,
+    private readonly  prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+    private readonly storageService: StorageService,
   ) {}
 
   async list() {
@@ -434,5 +437,67 @@ export class ProjectsService {
       },
     });
   }
-  
+
+  async updateLogo(
+  projectId: string,
+  userId: string,
+  file: Express.Multer.File,
+) {
+  const project =
+    await this.prisma.project.findUnique({
+      where: {
+        id: projectId,
+      },
+    });
+
+  if (!project) {
+    throw new NotFoundException(
+      'Project not found',
+    );
+  }
+
+  if (project.ownerId !== userId) {
+    throw new ForbiddenException(
+      'Permission denied.',
+    );
+  }
+
+  const upload =
+    await this.storageService.upload(
+      file,
+      StorageType.PROJECT,
+      project.id,
+    );
+
+  if (project.logoUrl) {
+    try {
+      const oldPath =
+        this.storageService.extractPathFromUrl(
+          project.logoUrl,
+        );
+
+      if (oldPath) {
+        await this.storageService.delete(
+          StorageType.PROJECT,
+          oldPath,
+        );
+      }
+    } catch (error) {
+      console.warn(
+        'Failed to delete previous project logo',
+        error,
+      );
+    }
+  }
+
+  return this.prisma.project.update({
+    where: {
+      id: project.id,
+    },
+    data: {
+      logoUrl: upload.url,
+    },
+  });
+  }
+
 }

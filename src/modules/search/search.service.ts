@@ -1,20 +1,13 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
-interface SearchOptions {
-  keyword: string;
-  type: string;
-  roleFilter?: string;
-  stageFilter?: string;
-  categoryFilter?: string;
-  limit: number;
-}
+
 
 @Injectable()
 export class SearchService {
   constructor(private prisma: PrismaService) {}
 
-  async list(keyword: string, type: string, roleFilter: string | undefined, limit: number, stageFilter?: string, categoryFilter?: string) {
+  async list(userId: string, keyword: string, type: string, roleFilter: string | undefined, limit: number, stageFilter?: string, categoryFilter?: string) {
     // Strict wildcard config for real-time keystroke matching
     const textMatch = {
       contains: keyword,
@@ -35,8 +28,19 @@ export class SearchService {
       : undefined;
 
     let resolvedType = type.toLowerCase().trim();
-    if (resolvedType.includes('|')) resolvedType = 'all';
-
+    if (
+        ![
+            "all",
+            "users",
+            "projects",
+            "jobs",
+            "events",
+            "posts",
+            "messages",
+        ].includes(resolvedType)
+    ){
+        resolvedType = 'all';
+    }
     // ==========================================
     // 2. NETWORK SEARCH ROUTE (SCREEN 1)
     // ==========================================
@@ -92,6 +96,38 @@ export class SearchService {
         take: limit,
       });
     }
+    
+    if (resolvedType === "messages") {
+      return {
+        users: [],
+        projects: [],
+        jobs: [],
+        events: [],
+        posts: [],
+        messages: await this.prisma.message.findMany({
+          where: {
+            conversation: {
+              OR: [
+                {
+                  userAId: userId,
+                },
+                {
+                  userBId: userId,
+                },
+              ],
+            },
+            content: {
+            contains: keyword,
+            mode: "insensitive",
+          },
+        },
+            orderBy: {
+            createdAt: "desc",
+          },
+          take: limit,
+        }),
+      };
+    }
 
     // ==========================================
     // 4. COMBINED UNIVERSAL FALLBACK
@@ -119,6 +155,6 @@ export class SearchService {
       }),
     ]);
 
-    return { users, projects, jobs: [] };
+    return { users, projects, jobs: [], events: [], posts: [], messages: [] };
   }
 }

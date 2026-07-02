@@ -103,4 +103,41 @@ export class MessagesService {
       throw error;
     }
   }
+  async searchMessages(
+    conversationId: string,
+    userId: string,
+    query: string,
+  ) {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (!conversation) {
+      throw new NotFoundException(
+        'Conversation not found',
+      );
+    }
+
+    if (
+      conversation.userAId !== userId &&
+      conversation.userBId !== userId
+    ) {
+      throw new ForbiddenException(
+        'You are not a participant in this conversation',
+      );
+    }
+
+    return this.prisma.message.findMany({
+      where: {
+        conversationId,
+        content: {
+          contains: query,
+          mode: 'insensitive',
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
 }
