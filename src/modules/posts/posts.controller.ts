@@ -2,6 +2,9 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Req } fro
 import { PostsService } from './posts.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreatePostDto } from './dto/create-post.dto';
+import { UploadedFiles, UseInterceptors } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 
 @UseGuards(JwtAuthGuard)
 @Controller('posts')
@@ -15,10 +18,22 @@ export class PostsController {
   findOne(@Param('id') id: string) { return this.svc.findOne(id); }
 
   @Post()
-  async create(@Body() dto: CreatePostDto, @Req() req: any) {
+  @UseInterceptors(
+    FilesInterceptor("files", 10, {
+      storage: memoryStorage(),
+      limits: {
+      fileSize: 50 * 1024 * 1024,
+    },
+  }),
+)
+  async create(
+    @UploadedFiles()
+    files: Express.Multer.File[],
+
+    @Body() dto: CreatePostDto, @Req() req: any) {
     // req.user.sub or req.user.id depending on your JWT payload
     const userId = req.user.id || req.user.sub;
-    return this.svc.create(userId, dto);
+    return this.svc.create(userId, dto, files);
   }
 
   @Patch(':id')

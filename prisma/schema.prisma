@@ -295,9 +295,7 @@ model Post {
   authorId  String
   content   String
   category  PostCategory  @default(Update)
-  imageUrl  String        @default("")
   linkUrl   String        @default("")
-  mediaType String        @default("image")
   projectId String?
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
@@ -306,8 +304,28 @@ model Post {
   comments  PostComment[]
   likes     PostLike[]
 
+  media     PostMedia[]
+
   @@index([createdAt])
   @@index([authorId])
+}
+
+model PostMedia {
+  id        String        @id @default(uuid())
+
+  postId    String
+
+  url       String
+
+  type      MediaType
+
+  order     Int           @default(0)
+
+  createdAt DateTime      @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
 }
 
 model PostLike {
@@ -649,4 +667,9 @@ enum RequestStatus {
   founder_contacted
   approved
   rejected
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
 }

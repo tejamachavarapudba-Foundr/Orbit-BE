@@ -17,17 +17,10 @@ export class CreatePostDto {
   })
   category?: PostCategory;
 
-  @IsOptional()
-  @IsString()
-  imageUrl?: string;
-
+ 
   @IsOptional()
   @IsString()
   linkUrl?: string;
-
-  @IsOptional()
-  @IsString()
-  mediaType?: string;
 
   @IsOptional()
   @IsString()
