@@ -420,7 +420,7 @@ export class ProjectsService {
       where: {
         userId,
       },
-                              include: {
+        include: {
         project: {
           include: {
             investorSnapshot: true,

@@ -48,7 +48,12 @@ export class OnboardingService {
       onboardingGoals: dto.goals ?? [],
       onboardingCompleted: true,
       onboardingStep: 'completed',
-      profileCompletion: 100,
+      profileCompletion:
+      dto.memberRole === "founder" ||
+      dto.memberRole === "co_founder" ||
+      dto.memberRole === "investor"
+        ? 100
+        : 90,
     },
   });
 

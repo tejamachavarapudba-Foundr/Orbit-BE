@@ -30,11 +30,22 @@ export class PostsController {
     @UploadedFiles()
     files: Express.Multer.File[],
 
-    @Body() dto: CreatePostDto, @Req() req: any) {
+    @Body() body: any, @Req() req: any) {
     // req.user.sub or req.user.id depending on your JWT payload
     const userId = req.user.id || req.user.sub;
-    return this.svc.create(userId, dto, files);
-  }
+    const metadata = body.mediaMetadata
+      ? Array.isArray(body.mediaMetadata)
+        ? body.mediaMetadata.map((m) => JSON.parse(m))
+        : [JSON.parse(body.mediaMetadata)]
+      : [];
+
+    return this.svc.create(
+      userId,
+      body,
+      files,
+      metadata,
+    );
+  };
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: any) {

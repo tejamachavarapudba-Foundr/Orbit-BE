@@ -71,6 +71,12 @@ export class StorageService {
         'documents',
       );
 
+    case StorageType.RESUME:
+      return this.configService.get<string>(
+        "SUPABASE_BUCKET_RESUMES",
+        "resumes",
+      );
+
     case StorageType.CHAT:
       return this.configService.get<string>(
         'SUPABASE_BUCKET_CHAT',
@@ -227,6 +233,12 @@ export class StorageService {
 
         break;
 
+      case StorageType.RESUME:
+
+        this.validateResume(file);
+
+        break;
+
       case StorageType.CHAT:
 
         break;
@@ -269,7 +281,10 @@ export class StorageService {
       );
     }
 
-    const url = this.getPublicUrl(bucket, path);
+    const url =
+      type === StorageType.RESUME
+        ? ""
+        : this.getPublicUrl(bucket, path);
 
     this.logger.log(
       `Uploaded ${filename} (${file.size} bytes) to ${bucket} in ${
@@ -390,4 +405,28 @@ export class StorageService {
         path.indexOf("/") + 1,
       );
   }
+
+  
+  private validateResume(
+    file: Express.Multer.File,
+  ) {
+    const allowed = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+
+    if (!allowed.includes(file.mimetype)) {
+      throw new BadRequestException(
+          "Resume must be PDF, DOC or DOCX.",
+      );
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      throw new BadRequestException(
+        "Resume exceeds 10 MB.",
+      );
+    }
+  }
+
 }

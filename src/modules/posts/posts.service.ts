@@ -1,9 +1,10 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'; // Added NotFoundException
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
-import { MediaType, PostCategory } from '@prisma/client';
+import { MediaType, MediaOrientation, PostCategory } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
 import { StorageType } from '../storage/enums/storage-type.enum';
+import { MediaMetadataDto } from "./dto/media-metadata.dto";
 
 @Injectable()
 export class PostsService {
@@ -52,6 +53,7 @@ export class PostsService {
   userId: string,
   dto: CreatePostDto,
   files: Express.Multer.File[],
+  mediaMetadata: MediaMetadataDto[],
 ) {
   const post =
     await this.prisma.post.create({
@@ -88,19 +90,35 @@ export class PostsService {
           StorageType.POST,
           post.id,
         );
-
+      const meta: Partial<MediaMetadataDto> =
+        mediaMetadata.find(
+          (m) => m.index === i,
+        ) ?? {};
+        
       await this.prisma.postMedia.create({
-        data: {
+        data: { 
           postId: post.id,
+
           url: upload.url,
 
-          type: file.mimetype.startsWith(
-            "video/",
-          )
+          type: file.mimetype.startsWith("video/")
             ? MediaType.VIDEO
             : MediaType.IMAGE,
 
           order: i,
+
+          width: meta.width ?? null,
+
+          height: meta.height ?? null,
+
+          duration: meta.duration ?? null,
+
+              // orientation is required by Prisma's PostMediaUncheckedCreateInput
+              orientation: meta.orientation ?? null,
+
+          mimeType: meta.mimeType ?? null,
+
+          fileSize: meta.fileSize ?? null,
         },
       });
     }

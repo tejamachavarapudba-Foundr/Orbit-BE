@@ -10,4 +10,6 @@ export enum StorageType {
   DOCUMENT = 'document',
 
   CHAT = 'chat',
+
+  RESUME = "resume",
 }

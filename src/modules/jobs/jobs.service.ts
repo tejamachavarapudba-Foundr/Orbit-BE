@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { JobApplicationStatus } from '@prisma/client';
+import { CreateJobDto } from "./dto/create-job.dto";
 
 @Injectable()
 export class JobsService {
@@ -33,21 +34,35 @@ export class JobsService {
   }
 
   // 3. POST A NEW VACANCY
-  async createJob(posterId: string, dto: any) {
-    if (!dto.projectId) {
-      throw new BadRequestException('A valid projectId must be provided.');
-    }
+  async createJob(posterId: string, dto: CreateJobDto) {
+    const profile = await this.prisma.profile.findUnique({
+        where: {
+            id: posterId,
+        },
+    });
 
-    const project = await this.prisma.project.findUnique({ where: { id: dto.projectId } });
-    if (!project) throw new NotFoundException('Startup project not found.');
+if (!profile) {
+    throw new NotFoundException(
+        "Profile not found.",
+    );
+}
 
-    if (project.ownerId !== posterId) {
-      throw new ForbiddenException('Only the primary startup founder/owner can publish job vacancies.');
-    }
+const allowedRoles = [
+  "founder",
+  "co_founder",
+  "investor",
+  "hr",
+];
+
+if (!allowedRoles.includes(profile.role)) {
+  throw new ForbiddenException(
+    "Only founders, co-founders, investors and HR can post jobs.",
+  );
+}
 
     return this.prisma.job.create({
       data: {
-        startupName: project.name,
+        startupName: dto.startupName,
         heading: dto.heading,
         role: dto.role || "other",
         experience: dto.experience || "Not specified",
@@ -101,6 +116,25 @@ export class JobsService {
       throw new BadRequestException('You cannot apply to a job vacancy that you posted.');
     }
 
+    const applicant =
+      await this.prisma.profile.findUnique({
+        where: {
+          id: applicantId,
+        },
+      });
+
+    if (!applicant) {
+      throw new NotFoundException(
+        "Applicant profile not found.",
+      );
+    }
+
+    if (!applicant.resumeKey) {
+      throw new BadRequestException(
+        "Please upload your resume before applying.",
+      );
+    }
+
     const existingApplication = await this.prisma.jobApplication.findUnique({
       where: {
         jobId_applicantId: { jobId, applicantId },
@@ -113,10 +147,48 @@ export class JobsService {
 
     return this.prisma.jobApplication.create({
       data: {
-        message: dto.message || "Interested in joining the team.",
+        message:
+          dto.message ??
+          "Interested in joining the team.",
+
         status: JobApplicationStatus.pending,
-        job: { connect: { id: jobId } },
-        applicant: { connect: { id: applicantId } },
+
+        resumeKey:
+          applicant.resumeKey,
+
+        resumeFileName:
+          applicant.resumeFileName,
+
+        resumeFileSize:
+          applicant.resumeFileSize,
+
+        coverLetter:
+          dto.coverLetter ?? null,
+
+        expectedSalary:
+          dto.expectedSalary ?? null,
+
+        noticePeriod:
+          dto.noticePeriod ?? null,
+
+        portfolioUrl:
+          dto.portfolioUrl ?? null,
+
+        linkedinUrl:
+          dto.linkedinUrl ??
+          applicant.linkedinUrl,
+
+        job: {
+          connect: {
+            id: jobId,
+          },
+        },
+
+        applicant: {
+          connect: {
+            id: applicantId,
+          },
+        },
       },
     });
   }

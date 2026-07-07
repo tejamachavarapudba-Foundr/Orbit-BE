@@ -47,6 +47,10 @@ model Profile {
   onboardingGoals            String[]
   onboardingStep             String?
   profileCompletion          Int                     @default(0)
+  resumeFileName             String?
+  resumeFileSize             Int?
+  resumeKey                  String?
+  resumeUpdatedAt            DateTime?
   advisorProfile             AdvisorProfile?
   following                  Connection[]            @relation("Follower")
   followers                  Connection[]            @relation("Following")
@@ -303,7 +307,6 @@ model Post {
   project   Project?      @relation(fields: [projectId], references: [id])
   comments  PostComment[]
   likes     PostLike[]
-
   media     PostMedia[]
 
   @@index([createdAt])
@@ -311,19 +314,21 @@ model Post {
 }
 
 model PostMedia {
-  id        String        @id @default(uuid())
-
-  postId    String
-
-  url       String
-
-  type      MediaType
-
-  order     Int           @default(0)
-
-  createdAt DateTime      @default(now())
-
-  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  id           String            @id @default(uuid())
+  postId       String
+  url          String
+  type         MediaType
+  order        Int               @default(0)
+  createdAt    DateTime          @default(now())
+  width        Int?
+  height       Int?
+  duration     Float?
+  mimeType     String?
+  fileSize     Int?
+  thumbnailUrl String?
+  orientation  MediaOrientation?
+  aspectRatio  Float?
+  post         Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([postId])
 }
@@ -417,15 +422,23 @@ model Job {
 }
 
 model JobApplication {
-  id          String               @id @default(uuid())
-  jobId       String
-  applicantId String
-  message     String               @default("")
-  status      JobApplicationStatus @default(pending)
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
-  applicant   Profile              @relation(fields: [applicantId], references: [id], onDelete: Cascade)
-  job         Job                  @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  id             String               @id @default(uuid())
+  jobId          String
+  applicantId    String
+  message        String               @default("")
+  status         JobApplicationStatus @default(pending)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  resumeKey      String?
+  resumeFileName String?
+  resumeFileSize Int?
+  coverLetter    String?
+  expectedSalary String?
+  noticePeriod   String?
+  portfolioUrl   String?
+  linkedinUrl    String?
+  applicant      Profile              @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  job            Job                  @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@unique([jobId, applicantId])
 }
@@ -672,4 +685,10 @@ enum RequestStatus {
 enum MediaType {
   IMAGE
   VIDEO
+}
+
+enum MediaOrientation {
+  PORTRAIT
+  LANDSCAPE
+  SQUARE
 }

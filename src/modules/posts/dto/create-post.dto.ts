@@ -25,4 +25,5 @@ export class CreatePostDto {
   @IsOptional()
   @IsString()
   projectId?: string;
+  
 }

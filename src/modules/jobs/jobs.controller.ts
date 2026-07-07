@@ -1,6 +1,8 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CreateJobDto } from "./dto/create-job.dto";
+import { ApplyJobDto } from './dto/apply-job.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('jobs')
@@ -22,7 +24,7 @@ export class JobsController {
   // POST /jobs
   @Post()
   createJob(
-    @Body() dto: { projectId: string; heading: string; role: string; experience?: string; skills?: string[]; description?: string },
+    @Body() dto: CreateJobDto,
     @Req() req: any,
   ) {
     const posterId = req.user.id || req.user.sub;
@@ -33,7 +35,7 @@ export class JobsController {
   @Patch(':id')
   updateJob(
     @Param('id') id: string,
-    @Body() dto: any,
+    @Body() dto: CreateJobDto,
     @Req() req: any,
   ) {
     const userId = req.user.id || req.user.sub;
@@ -51,7 +53,7 @@ export class JobsController {
   @Post(':id/apply')
   applyToJob(
     @Param('id') id: string,
-    @Body() dto: { message?: string },
+    @Body() dto: ApplyJobDto,
     @Req() req: any,
   ) {
     const applicantId = req.user.id || req.user.sub;
