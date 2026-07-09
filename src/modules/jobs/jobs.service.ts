@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException,
 import { PrismaService } from '../../prisma/prisma.service';
 import { JobApplicationStatus } from '@prisma/client';
 import { CreateJobDto } from "./dto/create-job.dto";
+import { ApplyJobDto } from "./dto/apply-job.dto";
 
 @Injectable()
 export class JobsService {
@@ -108,7 +109,7 @@ if (!allowedRoles.includes(profile.role)) {
   }
 
   // 6. POST /jobs/:id/apply (SUBMIT APPLICATION)
-  async applyToJob(jobId: string, applicantId: string, dto: { message?: string }) {
+  async applyToJob(jobId: string, applicantId: string, dto: ApplyJobDto) {
     const job = await this.prisma.job.findUnique({ where: { id: jobId } });
     if (!job) throw new NotFoundException('Job listing not found');
 
