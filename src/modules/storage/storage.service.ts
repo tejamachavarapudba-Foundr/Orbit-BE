@@ -266,7 +266,7 @@ export class StorageService {
 
     const startedAt = Date.now();
 
-    const { error } = await this.supabase.storage
+    const { error } = await this.supabase.storag
       .from(bucket)
       .upload(path, file.buffer, {
         contentType: file.mimetype,
