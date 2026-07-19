@@ -8,6 +8,8 @@ export interface UploadResult {
 
   filename: string;
 
+  originalFileName: string;
+
   url: string;
 
   mimetype: string;

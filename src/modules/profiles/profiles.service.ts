@@ -307,8 +307,8 @@ export class ProfilesService {
       },
       data: {
         resumeKey: upload.path,
-        resumeFileName: upload.filename,
-        resumeFileSize: file.size,
+        resumeFileName: upload.originalFileName,
+        resumeFileSize: upload.size,
         resumeUpdatedAt: new Date(),
       },
     });

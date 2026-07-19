@@ -297,6 +297,7 @@ export class StorageService {
       bucket,
       path,
       filename,
+      originalFileName: file.originalname,
       url,
       mimetype: file.mimetype,
       size: file.size,
