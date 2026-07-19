@@ -25,19 +25,23 @@ export async function bootstrapApp() {
 }
 
 async function bootstrap() {
-  // Only start a listening server if we are running locally, not on Vercel
-  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-    const app = await NestFactory.create(AppModule);
-    app.enableCors();
-    app.setGlobalPrefix('api');
-    app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })
-    );
-    
-    const port = Number(process.env.PORT ?? 3000);
-    await app.listen(port, '0.0.0.0');
-    console.log(`API listening locally on http://localhost:${port}/api`);
-  }
+  const app = await NestFactory.create(AppModule);
+
+  app.enableCors();
+  app.setGlobalPrefix('api');
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
+  const port = Number(process.env.PORT || 3000);
+
+  await app.listen(port, '0.0.0.0');
+
+  console.log(`API listening on port ${port}`);
 }
 
 bootstrap();
