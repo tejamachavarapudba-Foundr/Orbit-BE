@@ -6,7 +6,7 @@ import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
 import redisConfig from './config/redis.config';
 import awsConfig from './config/aws.config';
-
+import { AppController } from './app.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { RedisModule } from './redis/redis.module';
 import { SocketModule } from './socket/socket.module';
@@ -52,6 +52,7 @@ import { StorageModule } from './modules/storage/storage.module';
     PrismaModule,
     //RedisModule,
     SocketModule,
+    AppController,
     AuthModule,
     UsersModule,
     ProfilesModule,
