@@ -52,7 +52,6 @@ import { StorageModule } from './modules/storage/storage.module';
     PrismaModule,
     //RedisModule,
     SocketModule,
-    AppController,
     AuthModule,
     UsersModule,
     ProfilesModule,
@@ -78,5 +77,6 @@ import { StorageModule } from './modules/storage/storage.module';
     MeetingRequestsModule,
     StorageModule,
   ],
+  controllers: [AppController],
 })
 export class AppModule {}
