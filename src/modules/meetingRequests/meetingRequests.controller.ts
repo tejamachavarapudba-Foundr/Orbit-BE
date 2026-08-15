@@ -39,7 +39,6 @@ export class MeetingRequestsController {
 
   @Get('admin')
   async findAdminRequests(@Req() req: any) {
-    console.log("ADMIN USER:", req.user);
     this.extractAndVerifyUser(req, ['ADMIN']);
     return this.meetingRequestsService.getAdminRequests();
   }

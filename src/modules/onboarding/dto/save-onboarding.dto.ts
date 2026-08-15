@@ -1,4 +1,6 @@
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsIn, IsOptional, IsString } from 'class-validator';
+
+const MEMBER_ROLES = ['founder', 'investor', 'advisor', 'professional', 'service_provider'];
 
 export class SaveOnboardingDto {
   @IsOptional()
@@ -6,7 +8,7 @@ export class SaveOnboardingDto {
   step?: string;
 
   @IsOptional()
-  @IsString()
+  @IsIn(MEMBER_ROLES)
   memberRole?: string;
 
   @IsOptional()

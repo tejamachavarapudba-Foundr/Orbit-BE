@@ -8,13 +8,8 @@ export class ChatsController {
   constructor(private svc: ChatsService) {}
 
   // GET /chats
-     // GET /chats
-  @Get() 
-  list(@Req() req: any) { 
-    // 1. Debug log to verify what Passport is attaching to your request
-    console.log('--- ENFORCED AUTH PAYLOAD ---', req.user);
-
-    // 2. Strict verification check
+  @Get()
+  list(@Req() req: any) {
     if (!req.user) {
       throw new UnauthorizedException('Passport failed to extract user session');
     }

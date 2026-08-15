@@ -86,9 +86,6 @@ export class AuthService {
     },
   });
 
-  console.log('AUTH ME RESPONSE');
-  console.log(JSON.stringify(user, null, 2));
-
   return user;
 }
 

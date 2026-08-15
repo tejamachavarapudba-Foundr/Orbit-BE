@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common'; // Added NotFoundException
 import { PrismaService } from '../../prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
 import { MediaType, MediaOrientation, PostCategory } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
 import { StorageType } from '../storage/enums/storage-type.enum';
@@ -139,14 +140,20 @@ export class PostsService {
 }
   
   
-  async update(id: string, dto: any) {
+  async update(id: string, dto: UpdatePostDto) {
     try {
-      // Safely spread the dto fields and preserve enum type casting for categories
       return await this.prisma.post.update({
         where: { id },
         data: {
-          ...dto,
-          ...(dto.category ? { category: dto.category as any } : {}),
+          ...(dto.content !== undefined ? { content: dto.content } : {}),
+          ...(dto.category ? { category: dto.category as PostCategory } : {}),
+          ...(dto.linkUrl !== undefined ? { linkUrl: dto.linkUrl } : {}),
+        },
+        include: {
+          media: true,
+          author: true,
+          likes: true,
+          comments: true,
         },
       });
     } catch (error: any) {

@@ -6,9 +6,6 @@ export class AdminGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    // 1. Debug log to look inside what Passport is reading from your token
-    console.log('--- ADMIN GUARD USER CHECK ---', user);
-
     if (!user) {
       throw new ForbiddenException('Access Denied: User profile data could not be validated');
     }

@@ -15,6 +15,27 @@ export class JobsController {
     return this.svc.list();
   }
 
+  // GET /jobs/mine/applications
+  @Get('mine/applications')
+  myApplications(@Req() req: any) {
+    const applicantId = req.user.id || req.user.sub;
+    return this.svc.myApplications(applicantId);
+  }
+
+  // GET /jobs/mine/posts
+  @Get('mine/posts')
+  myPosts(@Req() req: any) {
+    const posterId = req.user.id || req.user.sub;
+    return this.svc.myPosts(posterId);
+  }
+
+  // GET /jobs/mine/analytics
+  @Get('mine/analytics')
+  myAnalytics(@Req() req: any) {
+    const posterId = req.user.id || req.user.sub;
+    return this.svc.myAnalytics(posterId);
+  }
+
   // GET /jobs/:id
   @Get(':id')
   findOne(@Param('id') id: string) {

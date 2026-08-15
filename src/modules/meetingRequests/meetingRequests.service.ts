@@ -1,10 +1,14 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service'; 
+import { PrismaService } from '../../prisma/prisma.service';
 import { CreateMeetingRequestDto } from './dto/createmeetingRequests.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class MeetingRequestsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async createRequest(investorId: string, dto: CreateMeetingRequestDto) {
     if (!investorId) {
@@ -34,7 +38,7 @@ export class MeetingRequestsService {
     // Separate startupId from DTO body so we do not pass a scalar and relation link simultaneously
     const { startupId, ...remainingDto } = dto;
 
-    return this.prisma.meetingRequest.create({
+    const request = await this.prisma.meetingRequest.create({
       data: {
         ...remainingDto,
         preferredDate1: targetDate1,
@@ -44,6 +48,18 @@ export class MeetingRequestsService {
         startup: { connect: { id: startupId } },
       },
     });
+
+    const startup = await this.prisma.project.findUnique({ where: { id: startupId } });
+    if (startup) {
+      await this.notifications.createNotification(
+        startup.ownerId,
+        'MEETING_REQUEST',
+        'New meeting request',
+        `An investor requested a meeting for ${startup.name}.`,
+      );
+    }
+
+    return request;
   }
 
   async getInvestorRequests(investorId: string) {
@@ -82,19 +98,36 @@ export class MeetingRequestsService {
       orderBy: { createdAt: 'desc' },
     });
     
-    console.log("TOTAL ADMIN MEETINGS:", meetings.length);
-
     return meetings;
   }
 
-  async updateRequestStatus(id: string, status: 'pending' | 'founder_contacted' | 'approved' | 'rejected') {
+  async updateRequestStatus(id: string, status: 'pending' | 'founder_contacted' | 'approved' | 'rejected' | 'completed') {
+    let updated;
     try {
-      return await this.prisma.meetingRequest.update({
+      updated = await this.prisma.meetingRequest.update({
         where: { id },
         data: { status },
       });
     } catch {
       throw new NotFoundException(`Meeting request with ID "${id}" not found.`);
     }
+
+    if (status === 'approved') {
+      await this.notifications.createNotification(
+        updated.investorId,
+        'MEETING_UPCOMING',
+        'Meeting approved',
+        'Your meeting request was approved and is coming up.',
+      );
+    } else if (status === 'completed') {
+      await this.notifications.createNotification(
+        updated.investorId,
+        'MEETING_COMPLETED',
+        'Meeting completed',
+        'Your meeting has been marked as completed.',
+      );
+    }
+
+    return updated;
   }
 }

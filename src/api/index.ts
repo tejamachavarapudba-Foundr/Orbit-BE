@@ -9,30 +9,22 @@ let cachedServer: any;
 async function bootstrap() {
   try {
     if (!cachedServer) {
-      console.log('Starting Nest app...');
-
       const expressApp = express();
-      
+
       const compiled = require('../dist/api/index.js');
       module.exports = compiled.default || compiled;
-      
+
       const nestApp = await NestFactory.create(
         AppModule,
         new ExpressAdapter(expressApp),
       );
-
-      console.log('Nest app created');
 
       nestApp.enableCors();
       nestApp.setGlobalPrefix('api');
 
       await nestApp.init();
 
-      console.log('Nest app initialized');
-
       cachedServer = serverlessExpress({ app: expressApp });
-
-      console.log('Serverless Express initialized');
     }
 
     return cachedServer;
@@ -44,8 +36,6 @@ async function bootstrap() {
 
 export default async function handler(req: any, res: any) {
   try {
-    console.log('Incoming request:', req.url);
-
     const server = await bootstrap();
 
     return server(req, res);

@@ -63,11 +63,6 @@ export class ProfilesService {
   }
 
   async update(id: string, dto: UpdateProfileDto) {
-    console.log('========================');
-    console.log('PROFILE UPDATE DTO');
-    console.log(JSON.stringify(dto, null, 2));
-    console.log('========================');
-
     const role = validProfileRoles.has(dto.role ?? '')
       ? dto.role
       : undefined;
@@ -92,10 +87,7 @@ export class ProfilesService {
        * Founder
        */
       if (roleProfile?.role === 'founder') {
-        console.log('FOUNDER UPSERT START');
-        console.log(JSON.stringify(roleProfile.data, null, 2));
-
-        const founder = await this.prisma.founderProfile.upsert({
+        await this.prisma.founderProfile.upsert({
           where: {
             profileId: id,
           },
@@ -123,9 +115,6 @@ export class ProfilesService {
             goals: roleProfile.data?.goals ?? [],
           },
         });
-
-        console.log('FOUNDER UPSERT RESULT');
-        console.log(founder);
       }
 
       /*
@@ -164,6 +153,82 @@ export class ProfilesService {
               roleProfile.data?.portfolio ?? '',
             goals:
               roleProfile.data?.goals ?? [],
+          },
+        });
+      }
+
+      /*
+       * Advisor
+       */
+      if (roleProfile?.role === 'advisor') {
+        await this.prisma.advisorProfile.upsert({
+          where: { profileId: id },
+          update: {
+            expertise: roleProfile.data?.expertise ?? [],
+            yearsExperience: roleProfile.data?.yearsExperience ?? '',
+            industries: roleProfile.data?.industries ?? [],
+            mentorshipAreas: roleProfile.data?.mentorshipAreas ?? [],
+            goals: roleProfile.data?.goals ?? [],
+          },
+          create: {
+            profileId: id,
+            expertise: roleProfile.data?.expertise ?? [],
+            yearsExperience: roleProfile.data?.yearsExperience ?? '',
+            industries: roleProfile.data?.industries ?? [],
+            mentorshipAreas: roleProfile.data?.mentorshipAreas ?? [],
+            goals: roleProfile.data?.goals ?? [],
+          },
+        });
+      }
+
+      /*
+       * Professional
+       */
+      if (roleProfile?.role === 'professional') {
+        await this.prisma.professionalProfile.upsert({
+          where: { profileId: id },
+          update: {
+            skills: roleProfile.data?.skills ?? [],
+            experienceLevel: roleProfile.data?.experienceLevel ?? '',
+            portfolio: roleProfile.data?.portfolio ?? '',
+            resume: roleProfile.data?.resume ?? '',
+            specialization: roleProfile.data?.specialization ?? '',
+            specializationOther: roleProfile.data?.specializationOther ?? '',
+            goals: roleProfile.data?.goals ?? [],
+          },
+          create: {
+            profileId: id,
+            skills: roleProfile.data?.skills ?? [],
+            experienceLevel: roleProfile.data?.experienceLevel ?? '',
+            portfolio: roleProfile.data?.portfolio ?? '',
+            resume: roleProfile.data?.resume ?? '',
+            specialization: roleProfile.data?.specialization ?? '',
+            specializationOther: roleProfile.data?.specializationOther ?? '',
+            goals: roleProfile.data?.goals ?? [],
+          },
+        });
+      }
+
+      /*
+       * Service provider
+       */
+      if (roleProfile?.role === 'service_provider') {
+        await this.prisma.serviceProviderProfile.upsert({
+          where: { profileId: id },
+          update: {
+            company: roleProfile.data?.company ?? '',
+            services: roleProfile.data?.services ?? [],
+            website: roleProfile.data?.website ?? '',
+            clientIndustries: roleProfile.data?.clientIndustries ?? [],
+            goals: roleProfile.data?.goals ?? [],
+          },
+          create: {
+            profileId: id,
+            company: roleProfile.data?.company ?? '',
+            services: roleProfile.data?.services ?? [],
+            website: roleProfile.data?.website ?? '',
+            clientIndustries: roleProfile.data?.clientIndustries ?? [],
+            goals: roleProfile.data?.goals ?? [],
           },
         });
       }

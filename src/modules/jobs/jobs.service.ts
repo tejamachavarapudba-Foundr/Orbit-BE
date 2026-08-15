@@ -3,10 +3,14 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { JobApplicationStatus } from '@prisma/client';
 import { CreateJobDto } from "./dto/create-job.dto";
 import { ApplyJobDto } from "./dto/apply-job.dto";
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class JobsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   // 1. GET ALL VACANCIES
   async list() {
@@ -146,7 +150,7 @@ if (!allowedRoles.includes(profile.role)) {
       throw new ConflictException(`You have already submitted an application for this position. Status: ${existingApplication.status}`);
     }
 
-    return this.prisma.jobApplication.create({
+    const application = await this.prisma.jobApplication.create({
       data: {
         message:
           dto.message ??
@@ -192,6 +196,15 @@ if (!allowedRoles.includes(profile.role)) {
         },
       },
     });
+
+    await this.notifications.createNotification(
+      job.posterId,
+      'JOB_ALERT',
+      'New job application',
+      `You have a new applicant for ${job.heading}.`,
+    );
+
+    return application;
   }
 
   // 7. PATCH /jobs/:id/applications/:appId (APPROVE OR REJECT INCOMING APPLICANT)
@@ -214,6 +227,15 @@ if (!allowedRoles.includes(profile.role)) {
       where: { id: appId },
       data: { status: status as JobApplicationStatus },
     });
+
+    if (status.toLowerCase() === 'accepted' || status.toLowerCase() === 'rejected') {
+      await this.notifications.createNotification(
+        app.applicantId,
+        'APPLICATION_STATUS',
+        `Application ${status.toLowerCase()}`,
+        `Your application for ${app.job.heading} was ${status.toLowerCase()}.`,
+      );
+    }
 
     // Automatically transition to the ProjectMember layout if the application is approved
     if (status.toLowerCase() === 'accepted') {
@@ -241,5 +263,61 @@ if (!allowedRoles.includes(profile.role)) {
     }
 
     return updatedApp;
+  }
+
+  // 8. GET /jobs/mine/applications (JOBSEEKER VIEW)
+  async myApplications(applicantId: string) {
+    return this.prisma.jobApplication.findMany({
+      where: { applicantId },
+      include: { job: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // 9. GET /jobs/mine/posts (FOUNDER / HR VIEW)
+  async myPosts(posterId: string) {
+    return this.prisma.job.findMany({
+      where: { posterId },
+      include: { applications: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // 10. GET /jobs/mine/analytics (FOUNDER / HR VIEW)
+  async myAnalytics(posterId: string) {
+    const jobs = await this.prisma.job.findMany({
+      where: { posterId },
+      include: { applications: true },
+    });
+
+    let totalApplications = 0;
+    let accepted = 0;
+    let rejected = 0;
+    let pending = 0;
+
+    for (const job of jobs) {
+      for (const application of job.applications) {
+        totalApplications += 1;
+        if (application.status === JobApplicationStatus.accepted) accepted += 1;
+        else if (application.status === JobApplicationStatus.rejected) rejected += 1;
+        else pending += 1;
+      }
+    }
+
+    return {
+      totalPosts: jobs.length,
+      totalApplications,
+      accepted,
+      rejected,
+      pending,
+      onboardCount: accepted,
+      perJob: jobs.map((job) => ({
+        jobId: job.id,
+        heading: job.heading,
+        applicationCount: job.applications.length,
+        accepted: job.applications.filter((a) => a.status === JobApplicationStatus.accepted).length,
+        rejected: job.applications.filter((a) => a.status === JobApplicationStatus.rejected).length,
+      })),
+    };
   }
 }

@@ -24,7 +24,7 @@ export class SuperUserService {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Account with this email address already exists');
 
-    const temporaryPassword = dto.password || 'FoundrAdminDefault123!';
+    const temporaryPassword = dto.password || 'StartuphouzeAdminDefault123!';
     const passwordHash = await hash(temporaryPassword);
 
     return this.prisma.user.create({
