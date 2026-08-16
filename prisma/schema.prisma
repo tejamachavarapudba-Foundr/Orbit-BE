@@ -181,9 +181,9 @@ model Project {
   pitch            String               @default("")
   category         String               @default("")
   industryTags     String[]
-  projectType      ProjectType          @default(other)
+  projectType      String               @default("other")
   stage            ProjectStage         @default(idea)
-  fundingStage     FundingStage         @default(bootstrapped)
+  fundingStage     String               @default("bootstrapping")
   teamSize         Int                  @default(1)
   foundedYear      Int?
   location         String               @default("")

@@ -1,23 +1,37 @@
 import './common/supabase.polyfill';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { HttpErrorFilter } from './common/filters/http-exception.filter';
 import { configure as serverlessExpress } from '@codegenie/serverless-express';
+
+const logger = new Logger('Process');
+
+// A single bad request should never take the whole server down for everyone
+// else — log it and keep serving traffic instead of letting the process die.
+process.on('unhandledRejection', (reason) => {
+  logger.error(`Unhandled rejection: ${reason instanceof Error ? reason.stack : reason}`);
+});
+
+process.on('uncaughtException', (error) => {
+  logger.error(`Uncaught exception: ${error.stack}`);
+});
 
 let cachedServer: any;
 
 export async function bootstrapApp() {
   if (!cachedServer) {
     const app = await NestFactory.create(AppModule);
-    
+
     app.enableCors();
     app.setGlobalPrefix('api');
+    app.useGlobalFilters(new HttpErrorFilter());
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })
     );
-    
+
     await app.init();
-    
+
     const expressApp = app.getHttpAdapter().getInstance();
     cachedServer = serverlessExpress({ app: expressApp });
   }
@@ -30,6 +44,8 @@ async function bootstrap() {
   app.enableCors();
 
   app.setGlobalPrefix('api');
+
+  app.useGlobalFilters(new HttpErrorFilter());
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -57,4 +73,3 @@ export default async (req: any, res: any) => {
   const server = await bootstrapApp();
   return server(req, res);
 };
-
