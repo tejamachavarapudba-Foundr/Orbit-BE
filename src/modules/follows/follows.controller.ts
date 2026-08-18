@@ -19,6 +19,12 @@ export class FollowsController {
     return this.svc.getFollowing(userId);
   }
 
+  // 2b. GET /follows/counts/:userId
+  @Get('counts/:userId')
+  getCounts(@Param('userId') userId: string) {
+    return this.svc.getCounts(userId);
+  }
+
   // 3. GET /follows/status/:userId
   @Get('status/:userId')
   getFollowStatus(@Req() req: any, @Param('userId') userId: string) {

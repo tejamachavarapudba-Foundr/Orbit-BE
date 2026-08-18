@@ -27,6 +27,16 @@ export class FollowsService {
     return connections.map((c) => c.following);
   }
 
+  // 2b. Count followers/following without fetching full profile lists
+  async getCounts(profileId: string) {
+    const [followers, following] = await Promise.all([
+      this.prisma.connection.count({ where: { followingId: profileId } }),
+      this.prisma.connection.count({ where: { followerId: profileId } }),
+    ]);
+
+    return { followers, following };
+  }
+
   // 3. Check follow status between two profiles
   async getStatus(currentProfileId: string, targetProfileId: string) {
     const record = await this.prisma.connection.findUnique({

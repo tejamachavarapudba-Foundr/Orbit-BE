@@ -28,6 +28,39 @@ export class PostsService {
     });
   }
 
+  async listSaved(userId: string) {
+    const saved = await this.prisma.savedPost.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        post: {
+          include: {
+            media: true,
+            author: true,
+            likes: true,
+            comments: true,
+          },
+        },
+      },
+    });
+
+    return saved.map((entry) => entry.post);
+  }
+
+  async toggleSave(userId: string, postId: string) {
+    const existing = await this.prisma.savedPost.findUnique({
+      where: { userId_postId: { userId, postId } },
+    });
+
+    if (existing) {
+      await this.prisma.savedPost.delete({ where: { id: existing.id } });
+      return { saved: false };
+    }
+
+    await this.prisma.savedPost.create({ data: { userId, postId } });
+    return { saved: true };
+  }
+
   async findOne(id: string) {
   const post = await this.prisma.post.findUnique({
     where: {

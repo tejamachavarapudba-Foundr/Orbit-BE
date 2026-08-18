@@ -68,6 +68,7 @@ model Profile {
   postsAuthored              Post[]
   postComments               PostComment[]
   postLikes                  PostLike[]
+  savedPosts                 SavedPost[]
   professionalProfile        ProfessionalProfile?
   user                       User                    @relation(fields: [id], references: [id], onDelete: Cascade)
   projects                   Project[]               @relation("ProjectOwner")
@@ -310,9 +311,22 @@ model Post {
   comments  PostComment[]
   likes     PostLike[]
   media     PostMedia[]
+  savedBy   SavedPost[]
 
   @@index([createdAt])
   @@index([authorId])
+}
+
+model SavedPost {
+  id        String   @id @default(uuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
 }
 
 model PostMedia {

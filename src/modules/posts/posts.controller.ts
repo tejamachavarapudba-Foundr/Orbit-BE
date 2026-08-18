@@ -15,8 +15,20 @@ export class PostsController {
   @Get()
   list() { return this.svc.list(); }
 
+  @Get('saved')
+  listSaved(@Req() req: any) {
+    const userId = req.user.id || req.user.sub;
+    return this.svc.listSaved(userId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) { return this.svc.findOne(id); }
+
+  @Post(':id/save')
+  toggleSave(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user.id || req.user.sub;
+    return this.svc.toggleSave(userId, id);
+  }
 
   @Post()
   @UseInterceptors(
