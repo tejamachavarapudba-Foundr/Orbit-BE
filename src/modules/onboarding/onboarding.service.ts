@@ -183,12 +183,11 @@ export class OnboardingService {
 
     const scored = candidates
       .map((candidate) => {
-        const overlap = goals.length
-          ? candidate.onboardingGoals.filter((goal) => goals.includes(goal)).length
-          : 0;
-        return { candidate, overlap };
+        const overlapGoals = goals.length
+          ? candidate.onboardingGoals.filter((goal) => goals.includes(goal))
+          : [];
+        return { candidate, overlap: overlapGoals.length, overlapGoals };
       })
-      .filter((entry) => goals.length === 0 || entry.overlap > 0)
       .sort((a, b) => b.overlap - a.overlap);
 
     for (const entry of scored) {
@@ -198,12 +197,31 @@ export class OnboardingService {
       }
     }
 
-    const people = scored.slice(0, 20).map((entry) => ({
-      id: entry.candidate.id,
-      fullName: entry.candidate.fullName,
-      headline: entry.candidate.headline,
-      role: entry.candidate.role,
-    }));
+    const truncate = (value: string, max: number) =>
+      value.length > max ? `${value.slice(0, max).trim()}…` : value;
+
+    const people = scored.slice(0, 20).map((entry) => {
+      const reasons: string[] = [];
+      if (entry.overlapGoals.length) {
+        const sharedGoals = entry.overlapGoals
+          .slice(0, 2)
+          .map((goal) => truncate(String(goal).trim(), 40));
+        reasons.push(`Shared interests: ${sharedGoals.join(', ')}`);
+      }
+      if (entry.candidate.headline?.trim()) {
+        reasons.push(truncate(entry.candidate.headline.trim(), 80));
+      }
+
+      return {
+        id: entry.candidate.id,
+        fullName: entry.candidate.fullName,
+        headline: entry.candidate.headline,
+        role: entry.candidate.role,
+        avatarUrl: null,
+        matchScore: Math.min(100, 40 + entry.overlap * 10),
+        matchReasons: reasons,
+      };
+    });
 
     return {
       people,
