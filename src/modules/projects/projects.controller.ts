@@ -5,6 +5,7 @@ import { MemberRole } from '@prisma/client';
 import { UploadedFile, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
+import { UpdateProjectDto } from './dto/update-project.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('projects')
@@ -47,7 +48,7 @@ export class ProjectsController {
   }
 
     @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: any, @Req() req: any) {
+  update(@Param('id') id: string, @Body() dto: UpdateProjectDto, @Req() req: any) {
     const userId = req.user.id || req.user.sub;
     return this.svc.update(id, userId, dto); // Passed userId as the second argument
   }
