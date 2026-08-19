@@ -86,7 +86,12 @@ export class AuthService {
     },
   });
 
-  return user;
+  if (!user) return null;
+
+  // Never send auth secrets to the client — this endpoint was returning
+  // the raw User row, bcrypt hashes and all.
+  const { passwordHash, refreshHash, resetToken, resetTokenExpires, ...safeUser } = user;
+  return safeUser;
 }
 
   // 🟢 CHANGED SIGNATURE: Added role parameter to bake into JWT payload tokens
