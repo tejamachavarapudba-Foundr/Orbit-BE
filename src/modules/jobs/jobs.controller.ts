@@ -3,6 +3,7 @@ import { JobsService } from './jobs.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateJobDto } from "./dto/create-job.dto";
 import { ApplyJobDto } from './dto/apply-job.dto';
+import { UpdateJobDto } from './dto/update-job.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('jobs')
@@ -56,7 +57,7 @@ export class JobsController {
   @Patch(':id')
   updateJob(
     @Param('id') id: string,
-    @Body() dto: CreateJobDto,
+    @Body() dto: UpdateJobDto,
     @Req() req: any,
   ) {
     const userId = req.user.id || req.user.sub;
