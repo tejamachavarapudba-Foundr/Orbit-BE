@@ -4,12 +4,15 @@ import { JobApplicationStatus } from '@prisma/client';
 import { CreateJobDto } from "./dto/create-job.dto";
 import { ApplyJobDto } from "./dto/apply-job.dto";
 import { NotificationsService } from '../notifications/notifications.service';
+import { StorageService } from '../storage/storage.service';
+import { StorageType } from '../storage/enums/storage-type.enum';
 
 @Injectable()
 export class JobsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly storage: StorageService,
   ) {}
 
   // 1. GET ALL VACANCIES
@@ -208,7 +211,7 @@ if (!allowedRoles.includes(profile.role)) {
   }
 
   // 7. PATCH /jobs/:id/applications/:appId (APPROVE OR REJECT INCOMING APPLICANT)
-  async processApplicationStatus(jobId: string, appId: string, status: string) {
+  async processApplicationStatus(jobId: string, appId: string, status: string, userId: string) {
     const app = await this.prisma.jobApplication.findUnique({
       where: { id: appId },
       include: { job: true },
@@ -216,6 +219,10 @@ if (!allowedRoles.includes(profile.role)) {
 
     if (!app || app.jobId !== jobId) {
       throw new NotFoundException('Job application record not found for this specific position listing.');
+    }
+
+    if (app.job.posterId !== userId) {
+      throw new ForbiddenException('You do not have permission to manage applications for this job post.');
     }
 
     const validStatuses = ['accepted', 'rejected', 'pending'];
@@ -263,6 +270,32 @@ if (!allowedRoles.includes(profile.role)) {
     }
 
     return updatedApp;
+  }
+
+  // 7b. GET /jobs/:id/applications/:appId/resume (OWNER OR APPLICANT ONLY)
+  async getApplicationResumeUrl(jobId: string, appId: string, userId: string) {
+    const app = await this.prisma.jobApplication.findUnique({
+      where: { id: appId },
+      include: { job: true },
+    });
+
+    if (!app || app.jobId !== jobId) {
+      throw new NotFoundException('Job application record not found for this specific position listing.');
+    }
+
+    const isOwner = app.job.posterId === userId;
+    const isApplicant = app.applicantId === userId;
+
+    if (!isOwner && !isApplicant) {
+      throw new ForbiddenException('You do not have permission to view this resume.');
+    }
+
+    if (!app.resumeKey) {
+      throw new NotFoundException('No resume was attached to this application.');
+    }
+
+    const url = await this.storage.getSignedUrl(StorageType.RESUME, app.resumeKey);
+    return { url, fileName: app.resumeFileName };
   }
 
   // 8. GET /jobs/mine/applications (JOBSEEKER VIEW)

@@ -115,6 +115,25 @@ export class StorageService {
     return publicUrl;
   }
 
+  async getSignedUrl(
+    type: StorageType,
+    path: string,
+    expiresInSeconds = 300,
+  ): Promise<string> {
+    const bucket = this.getBucket(type);
+
+    const { data, error } = await this.supabase.storage
+      .from(bucket)
+      .createSignedUrl(path, expiresInSeconds);
+
+    if (error || !data) {
+      this.logger.error(error?.message ?? 'Failed to create signed URL');
+      throw new InternalServerErrorException('Failed to generate a download link.');
+    }
+
+    return data.signedUrl;
+  }
+
   private validateImage(
     file: Express.Multer.File,
   ) {

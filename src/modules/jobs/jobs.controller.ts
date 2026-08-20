@@ -88,7 +88,20 @@ export class JobsController {
     @Param('id') id: string,
     @Param('appId') appId: string,
     @Body() dto: { status: string }, // Expects: { "status": "accepted" | "rejected" }
+    @Req() req: any,
   ) {
-    return this.svc.processApplicationStatus(id, appId, dto.status);
+    const userId = req.user.id || req.user.sub;
+    return this.svc.processApplicationStatus(id, appId, dto.status, userId);
+  }
+
+  // GET /jobs/:id/applications/:appId/resume
+  @Get(':id/applications/:appId/resume')
+  getApplicationResume(
+    @Param('id') id: string,
+    @Param('appId') appId: string,
+    @Req() req: any,
+  ) {
+    const userId = req.user.id || req.user.sub;
+    return this.svc.getApplicationResumeUrl(id, appId, userId);
   }
 }
