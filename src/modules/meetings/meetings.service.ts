@@ -10,6 +10,11 @@ import { CancelMeetingDto } from './dto/cancel-meeting.dto';
 const DEFAULT_DURATION_MINS = 30;
 const OPEN_SLOT_WINDOW_DAYS = 14;
 
+const proposalPeopleInclude = {
+  organizer: { select: { id: true, fullName: true, avatarUrl: true } },
+  invitees: { include: { user: { select: { id: true, fullName: true, avatarUrl: true } } } },
+} as const;
+
 @Injectable()
 export class MeetingsService {
   constructor(
@@ -365,7 +370,7 @@ export class MeetingsService {
     if (tab === 'completed') {
       return this.prisma.meeting.findMany({
         where: { status: 'completed', proposal: { OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] } },
-        include: { proposal: { include: { invitees: true } } },
+        include: { proposal: { include: proposalPeopleInclude } },
         orderBy: { confirmedAt: 'desc' },
       });
     }
@@ -374,11 +379,11 @@ export class MeetingsService {
       const [meetings, proposals] = await Promise.all([
         this.prisma.meeting.findMany({
           where: { status: 'cancelled', proposal: { OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] } },
-          include: { proposal: { include: { invitees: true } } },
+          include: { proposal: { include: proposalPeopleInclude } },
         }),
         this.prisma.meetingProposal.findMany({
           where: { status: { in: ['declined', 'cancelled'] }, OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] },
-          include: { invitees: true },
+          include: proposalPeopleInclude,
         }),
       ]);
       return { meetings, proposals };
@@ -388,12 +393,12 @@ export class MeetingsService {
     const [meetings, pendingProposals] = await Promise.all([
       this.prisma.meeting.findMany({
         where: { status: 'upcoming', proposal: { OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] } },
-        include: { proposal: { include: { invitees: true } } },
+        include: { proposal: { include: proposalPeopleInclude } },
         orderBy: { confirmedAt: 'asc' },
       }),
       this.prisma.meetingProposal.findMany({
         where: { status: 'pending', OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] },
-        include: { invitees: true },
+        include: proposalPeopleInclude,
         orderBy: { createdAt: 'desc' },
       }),
     ]);
@@ -404,7 +409,7 @@ export class MeetingsService {
   async getProposalForResponse(proposalId: string, userId: string) {
     const proposal = await this.prisma.meetingProposal.findUnique({
       where: { id: proposalId },
-      include: { invitees: true, organizer: true },
+      include: proposalPeopleInclude,
     });
     if (!proposal) throw new NotFoundException('Meeting proposal not found');
     const isInvitee = proposal.invitees.some((item) => item.userId === userId);
