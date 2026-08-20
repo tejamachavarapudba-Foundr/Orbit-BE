@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
@@ -33,7 +34,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { ConnectionRequestsModule } from './modules/connection-requests/connection-requests.module';
 import { InvestorSnapshotModule } from './modules/investor-snapshot/investor-snapshot.module';
-import { MeetingRequestsModule } from './modules/meetingRequests/meetingRequests.module';
+import { MeetingsModule } from './modules/meetings/meetings.module';
 import { StorageModule } from './modules/storage/storage.module';
 
 @Module({
@@ -43,6 +44,7 @@ import { StorageModule } from './modules/storage/storage.module';
       //load: [databaseConfig, jwtConfig, redisConfig, awsConfig],
         load: [databaseConfig,jwtConfig] // --- IGNORE ---
     }),
+    ScheduleModule.forRoot(),
     // BullModule.forRoot({
     //   redis: {
     //     host: process.env.REDIS_HOST ?? 'localhost',
@@ -74,7 +76,7 @@ import { StorageModule } from './modules/storage/storage.module';
     OnboardingModule,
     InvestorSnapshotModule,
     ConnectionRequestsModule,
-    MeetingRequestsModule,
+    MeetingsModule,
     StorageModule,
   ],
   controllers: [AppController],

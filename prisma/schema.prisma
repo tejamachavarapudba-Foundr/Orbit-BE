@@ -21,7 +21,7 @@ model User {
   resetToken        String?          @unique
   resetTokenExpires DateTime?
   auditLogs         AuditLog[]
-  meetingRequests   MeetingRequest[]
+  connectedGoogleAccount ConnectedGoogleAccount?
   notifications     Notification[]
   profile           Profile?
   savedStartups     SavedStartup[]
@@ -76,6 +76,9 @@ model Profile {
   projectMemberships         ProjectMember[]
   projectReviews             ProjectReview[]
   serviceProviderProfile     ServiceProviderProfile?
+  availabilitySlots          AvailabilitySlot[]
+  organizedProposals         MeetingProposal[]       @relation("ProposalOrganizer")
+  proposalInvitations        ProposalInvitee[]
 }
 
 model FounderProfile {
@@ -205,7 +208,7 @@ model Project {
   isVerified       Boolean              @default(false)
   isInvestorReady  Boolean              @default(false)
   investorSnapshot InvestorSnapshot?
-  meetingRequests  MeetingRequest[]
+  meetingProposals MeetingProposal[]
   posts            Post[]
   owner            Profile              @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   applications     ProjectApplication[]
@@ -402,22 +405,131 @@ model EventAttendee {
   @@unique([eventId, userId])
 }
 
-model MeetingRequest {
-  id                 String    @id @default(uuid())
-  startupId          String
-  investorId         String
-  purpose            String
-  preferredDate1     DateTime
-  preferredTime1     String
-  preferredDate2     DateTime?
-  preferredTime2     String?
-  expectedInvestment String?
-  message            String?
-  status             String    @default("pending")
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  investor           User      @relation(fields: [investorId], references: [id])
-  startup            Project   @relation(fields: [startupId], references: [id])
+model ConnectedGoogleAccount {
+  id               String    @id @default(uuid())
+  userId           String    @unique
+  googleEmail      String
+  accessTokenEnc   String
+  refreshTokenEnc  String
+  tokenExpiresAt   DateTime
+  connectedAt      DateTime  @default(now())
+  revokedAt        DateTime?
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AvailabilitySlot {
+  id        String   @id @default(uuid())
+  profileId String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  timezone  String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+}
+
+model MeetingProposal {
+  id              String          @id @default(uuid())
+  organizerId     String
+  inviteMode      InviteMode
+  targetStartupId String?
+  purpose         String
+  message         String?
+  schedulingMode  SchedulingMode
+  proposedSlots   Json?
+  timezone        String?
+  status          ProposalStatus  @default(pending)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  organizer       Profile         @relation("ProposalOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  targetStartup   Project?        @relation(fields: [targetStartupId], references: [id])
+  invitees        ProposalInvitee[]
+  meeting         Meeting?
+
+  @@index([organizerId])
+  @@index([status])
+}
+
+model ProposalInvitee {
+  id           String           @id @default(uuid())
+  proposalId   String
+  userId       String
+  response     InviteeResponse  @default(pending)
+  selectedSlot Json?
+  respondedAt  DateTime?
+  proposal     MeetingProposal  @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  user         Profile          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([proposalId, userId])
+  @@index([userId])
+}
+
+model Meeting {
+  id             String        @id @default(uuid())
+  proposalId     String        @unique
+  confirmedAt    DateTime
+  timezone       String
+  durationMins   Int           @default(30)
+  meetLink       String
+  googleEventId  String
+  status         MeetingStatus @default(upcoming)
+  cancelledBy    String?
+  cancelReason   String?
+  cancelledAt    DateTime?
+  createdAt      DateTime      @default(now())
+  proposal       MeetingProposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  reminders      MeetingReminderLog[]
+
+  @@index([status])
+  @@index([confirmedAt])
+}
+
+model MeetingReminderLog {
+  id         String             @id @default(uuid())
+  meetingId  String
+  checkpoint ReminderCheckpoint
+  sentAt     DateTime           @default(now())
+  meeting    Meeting            @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, checkpoint])
+}
+
+enum InviteMode {
+  startup
+  people
+}
+
+enum SchedulingMode {
+  availability_pick
+  date_push
+}
+
+enum ProposalStatus {
+  pending
+  confirmed
+  declined
+  cancelled
+}
+
+enum InviteeResponse {
+  pending
+  accepted
+  rejected
+}
+
+enum MeetingStatus {
+  upcoming
+  completed
+  cancelled
+}
+
+enum ReminderCheckpoint {
+  t_minus_24h
+  t_minus_5h
+  t_minus_15m
 }
 
 model Job {
@@ -588,6 +700,8 @@ enum NotificationType {
   MEETING_REQUEST
   MEETING_UPCOMING
   MEETING_COMPLETED
+  MEETING_RESPONSE
+  MEETING_CANCELLED
   EVENT_REMINDER
   SYSTEM_ALERT
 }
