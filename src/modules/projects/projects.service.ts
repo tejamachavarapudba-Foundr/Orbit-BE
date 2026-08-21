@@ -60,6 +60,9 @@ export class ProjectsService {
 
       isPublished: dto.isPublished ?? false,
 
+      cinNumber: dto.cinNumber ?? "",
+      dpiitNumber: dto.dpiitNumber ?? "",
+
       owner: {
         connect: {
           id: userId

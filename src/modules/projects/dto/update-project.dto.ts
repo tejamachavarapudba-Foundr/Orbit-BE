@@ -105,4 +105,12 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsBoolean()
   isPublished?: boolean;
+
+  @IsOptional()
+  @IsString()
+  cinNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  dpiitNumber?: string;
 }

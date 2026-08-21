@@ -206,6 +206,8 @@ model Project {
   techStack        String[]
   lookingFor       String[]
   isPublished      Boolean              @default(true)
+  cinNumber        String               @default("")
+  dpiitNumber      String               @default("")
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
   isVerified       Boolean              @default(false)
