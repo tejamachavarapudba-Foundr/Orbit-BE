@@ -20,6 +20,9 @@ model User {
   role              UserRole         @default(USER)
   resetToken        String?          @unique
   resetTokenExpires DateTime?
+  emailVerified            Boolean   @default(false)
+  verificationToken        String?   @unique
+  verificationTokenExpires DateTime?
   auditLogs         AuditLog[]
   connectedGoogleAccount ConnectedGoogleAccount?
   notifications     Notification[]

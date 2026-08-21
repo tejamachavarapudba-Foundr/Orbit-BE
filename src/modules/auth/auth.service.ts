@@ -5,19 +5,26 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { hash, compare } from '../../common/utils/hash.util';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { MailService } from '../mail/mail.service';
+
+const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
+const RESET_TTL_MS = 60 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService, private jwt: JwtService) {}
+  constructor(private prisma: PrismaService, private jwt: JwtService, private mail: MailService) {}
 
   async register(dto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email already in use');
     const passwordHash = await hash(dto.password);
+    const verificationToken = crypto.randomBytes(32).toString('hex');
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         passwordHash,
+        verificationToken,
+        verificationTokenExpires: new Date(Date.now() + VERIFICATION_TTL_MS),
         profile: { create: { fullName: dto.fullName } },
       },
     });
@@ -27,7 +34,51 @@ export class AuthService {
       update: { fullName: dto.fullName },
       create: { id: user.id, fullName: dto.fullName },
     });
+
+    // Signup succeeds regardless of whether the confirmation email goes out —
+    // an unverified account is still usable (soft gate), so a flaky mail
+    // provider should never be able to block registration.
+    try {
+      await this.mail.sendVerificationEmail(user.email, this.buildDeepLink('APP_VERIFY_EMAIL_DEEP_LINK', verificationToken));
+    } catch {
+      // already logged inside MailService
+    }
+
     return this.issueTokens(user.id, user.email, user.role); // 🟢 Passed user.role here
+  }
+
+  private buildDeepLink(envVar: string, token: string) {
+    const base = process.env[envVar] ?? `startuphouze://${envVar === 'APP_VERIFY_EMAIL_DEEP_LINK' ? 'verify-email' : 'reset-password'}`;
+    return `${base}?token=${token}`;
+  }
+
+  async verifyEmail(token: string) {
+    const user = await this.prisma.user.findUnique({ where: { verificationToken: token } });
+    if (!user || !user.verificationTokenExpires || user.verificationTokenExpires < new Date()) {
+      throw new BadRequestException('This verification link is invalid or has expired.');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true, verificationToken: null, verificationTokenExpires: null },
+    });
+
+    return { success: true, message: 'Email verified.' };
+  }
+
+  async resendVerification(email: string) {
+    const genericResponse = { success: true, message: 'If an account exists with that email, a confirmation link has been sent.' };
+    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+    if (!user || user.emailVerified) return genericResponse;
+
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { verificationToken, verificationTokenExpires: new Date(Date.now() + VERIFICATION_TTL_MS) },
+    });
+
+    await this.mail.sendVerificationEmail(user.email, this.buildDeepLink('APP_VERIFY_EMAIL_DEEP_LINK', verificationToken));
+    return genericResponse;
   }
 
   async login(dto: LoginDto) {
@@ -90,7 +141,7 @@ export class AuthService {
 
   // Never send auth secrets to the client — this endpoint was returning
   // the raw User row, bcrypt hashes and all.
-  const { passwordHash, refreshHash, resetToken, resetTokenExpires, ...safeUser } = user;
+  const { passwordHash, refreshHash, resetToken, resetTokenExpires, verificationToken, verificationTokenExpires, ...safeUser } = user;
   return safeUser;
 }
 
@@ -135,25 +186,46 @@ export class AuthService {
 
     // 3. Generate a cryptographically secure hex token and set an expiration date (1 hour)
     const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpires = new Date(Date.now() + 3600000); // 1 hour tracking frame
+    const resetTokenExpires = new Date(Date.now() + RESET_TTL_MS);
 
     // 4. Record the reset token data in the database
     await this.prisma.user.update({
       where: { id: user.id },
+      data: { resetToken, resetTokenExpires },
+    });
+
+    // 5. Construct the deep link back into the Orbit app, and 6. send it
+    const resetLink = this.buildDeepLink('APP_RESET_PASSWORD_DEEP_LINK', resetToken);
+    try {
+      await this.mail.sendPasswordResetEmail(user.email, resetLink);
+    } catch {
+      // already logged inside MailService — a failed send shouldn't leak
+      // whether the account exists via a different response shape
+    }
+
+    return genericResponse;
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { resetToken: token } });
+    if (!user || !user.resetTokenExpires || user.resetTokenExpires < new Date()) {
+      throw new BadRequestException('This password reset link is invalid or has expired.');
+    }
+
+    const passwordHash = await hash(newPassword);
+    await this.prisma.user.update({
+      where: { id: user.id },
       data: {
-        resetToken,          // Make sure to add this field to your schema.prisma User model!
-        resetTokenExpires,   // Make sure to add this field to your schema.prisma User model!
+        passwordHash,
+        resetToken: null,
+        resetTokenExpires: null,
+        // A password reset is a good moment to force re-login everywhere,
+        // in case the reset was prompted by a compromised session.
+        refreshHash: null,
       },
     });
 
-    // 5. Construct the deep link mapping back to your Expo Frontend app
-    const resetLink = `http://localhost:3000/api/auth/reset-password?token=${resetToken}`;
-
-    // 6. Send the link out via your mail delivery pipeline here
-    // await this.mailService.sendResetEmail(user.email, resetLink);
-    console.log(`[DEV ONLY] Password Reset Link: ${resetLink}`);
-
-    return genericResponse;
+    return { success: true, message: 'Password updated — sign in with your new password.' };
   }
 
 }
