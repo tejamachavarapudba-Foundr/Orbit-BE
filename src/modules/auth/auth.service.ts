@@ -6,13 +6,19 @@ import { hash, compare } from '../../common/utils/hash.util';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { MailService } from '../mail/mail.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 const RESET_TTL_MS = 60 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
-  constructor(private prisma: PrismaService, private jwt: JwtService, private mail: MailService) {}
+  constructor(
+    private prisma: PrismaService,
+    private jwt: JwtService,
+    private mail: MailService,
+    private notifications: NotificationsService,
+  ) {}
 
   async register(dto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
@@ -43,6 +49,13 @@ export class AuthService {
     } catch {
       // already logged inside MailService
     }
+
+    await this.notifications.createNotification(
+      user.id,
+      'WELCOME',
+      'Welcome to Orbit',
+      `Thanks for choosing Orbit, ${dto.fullName.split(' ')[0]} — let's help you build the right connections. Complete your profile to get discovered.`,
+    );
 
     return this.issueTokens(user.id, user.email, user.role); // 🟢 Passed user.role here
   }

@@ -53,13 +53,40 @@ export class MeetingsService {
    * Expands a profile's recurring weekly availability into concrete bookable
    * {date, time} options over the next 14 days.
    *
-   * NOTE: this does not yet exclude times that overlap an existing confirmed
-   * meeting for this profile — that's a known gap, flagged for a fast-follow
-   * rather than shipping unreliable cross-timezone overlap math in this pass.
+   * Excludes any candidate slot that overlaps a meeting this profile already
+   * has confirmed — meetings run 30min-1hr (or whatever durationMins ends up
+   * being), so this is a real interval overlap check, not just a same-start
+   * comparison.
    */
   async getOpenSlotsFor(profileId: string) {
     const slots = await this.getAvailability(profileId);
     if (slots.length === 0) return { timezone: null, slots: [] as { date: string; time: string }[] };
+
+    const windowEnd = new Date(Date.now() + OPEN_SLOT_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+    const busyMeetings = await this.prisma.meeting.findMany({
+      where: {
+        status: 'upcoming',
+        confirmedAt: { gte: new Date(), lte: windowEnd },
+        proposal: { OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] },
+      },
+      select: { confirmedAt: true, durationMins: true },
+    });
+
+    const busyRanges = busyMeetings.map((meeting) => {
+      const startMinutes = meeting.confirmedAt.getUTCHours() * 60 + meeting.confirmedAt.getUTCMinutes();
+      return {
+        date: meeting.confirmedAt.toISOString().slice(0, 10),
+        startMinutes,
+        endMinutes: startMinutes + meeting.durationMins,
+      };
+    });
+
+    const overlapsExistingMeeting = (dateStr: string, candidateStart: number) => {
+      const candidateEnd = candidateStart + DEFAULT_DURATION_MINS;
+      return busyRanges.some(
+        (range) => range.date === dateStr && candidateStart < range.endMinutes && candidateEnd > range.startMinutes,
+      );
+    };
 
     const results: { date: string; time: string }[] = [];
     const today = new Date();
@@ -76,7 +103,7 @@ export class MeetingsService {
         const endMinutes = endH * 60 + endM;
 
         while (cursor + DEFAULT_DURATION_MINS <= endMinutes) {
-          if (i > 0 || this.isLaterToday(cursor)) {
+          if ((i > 0 || this.isLaterToday(cursor)) && !overlapsExistingMeeting(dateStr, cursor)) {
             const hh = String(Math.floor(cursor / 60)).padStart(2, '0');
             const mm = String(cursor % 60).padStart(2, '0');
             results.push({ date: dateStr, time: `${hh}:${mm}` });
