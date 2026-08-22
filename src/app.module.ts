@@ -35,6 +35,7 @@ import { OnboardingModule } from './modules/onboarding/onboarding.module';
 import { ConnectionRequestsModule } from './modules/connection-requests/connection-requests.module';
 import { InvestorSnapshotModule } from './modules/investor-snapshot/investor-snapshot.module';
 import { MeetingsModule } from './modules/meetings/meetings.module';
+import { CommunitiesModule } from './modules/communities/communities.module';
 import { StorageModule } from './modules/storage/storage.module';
 
 @Module({
@@ -77,6 +78,7 @@ import { StorageModule } from './modules/storage/storage.module';
     InvestorSnapshotModule,
     ConnectionRequestsModule,
     MeetingsModule,
+    CommunitiesModule,
     StorageModule,
   ],
   controllers: [AppController],

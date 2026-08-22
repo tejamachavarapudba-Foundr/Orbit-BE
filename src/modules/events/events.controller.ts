@@ -12,13 +12,13 @@ export class EventsController {
   constructor(private svc: EventsService) {}
 
   @Get()
-  list() {
-    return this.svc.list();
+  list(@Request() req: any) {
+    return this.svc.list(req.user.id);
   }
 
   @Get(':id')
-  get(@Param('id') id: string) {
-    return this.svc.get(id);
+  get(@Param('id') id: string, @Request() req: any) {
+    return this.svc.get(id, req.user.id);
   }
 
   @Post()
@@ -46,7 +46,7 @@ export class EventsController {
   }
 
     @Get(':id/attendees')
-  getAttendees(@Param('id') eventId: string) {
-    return this.svc.getAttendees(eventId);
+  getAttendees(@Param('id') eventId: string, @Request() req: any) {
+    return this.svc.getAttendees(eventId, req.user.id);
   }
 }

@@ -1,5 +1,5 @@
 // src/modules/events/dto/create-event.dto.ts
-import { IsString, IsNotEmpty, IsOptional, IsISO8601, IsNumber } from 'class-validator';
+import { IsArray, IsBoolean, IsString, IsNotEmpty, IsOptional, IsISO8601, IsNumber } from 'class-validator';
 
 export class CreateEventDto {
   @IsString() @IsNotEmpty() title: string;
@@ -9,6 +9,10 @@ export class CreateEventDto {
   @IsISO8601() @IsOptional() endsAt?: string;
   @IsNumber() @IsOptional() latitude?: number;
   @IsNumber() @IsOptional() longitude?: number;
+
+  @IsBoolean() @IsOptional() isPrivate?: boolean;
+  @IsString() @IsOptional() communityId?: string;
+  @IsArray() @IsString({ each: true }) @IsOptional() inviteeIds?: string[];
 }
 
 export class CancelEventDto {

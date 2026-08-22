@@ -63,6 +63,9 @@ model Profile {
   conversationsB             Conversation[]          @relation("UserB")
   hostedEvents               Event[]
   eventRsvps                 EventAttendee[]
+  eventInvites                EventInvite[]
+  communitiesOwned            Community[]             @relation("CommunityOwner")
+  communityMemberships        CommunityMember[]
   founderProfile             FounderProfile?
   investorProfile            InvestorProfile?
   postedJobs                 Job[]
@@ -395,8 +398,14 @@ model Event {
   updatedAt          DateTime        @updatedAt
   cancellationReason String?
   status             EventStatus     @default(ACTIVE)
+  isPrivate          Boolean         @default(false)
+  communityId        String?
   host               Profile         @relation(fields: [hostId], references: [id], onDelete: Cascade)
+  community          Community?      @relation(fields: [communityId], references: [id], onDelete: SetNull)
   attendees          EventAttendee[]
+  invites            EventInvite[]
+
+  @@index([communityId])
 }
 
 model EventAttendee {
@@ -408,6 +417,45 @@ model EventAttendee {
   user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
+}
+
+model EventInvite {
+  id        String   @id @default(uuid())
+  eventId   String
+  userId    String
+  createdAt DateTime @default(now())
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([userId])
+}
+
+model Community {
+  id          String            @id @default(uuid())
+  name        String
+  description String            @default("")
+  ownerId     String
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  owner       Profile           @relation("CommunityOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     CommunityMember[]
+  events      Event[]
+
+  @@index([ownerId])
+}
+
+model CommunityMember {
+  id          String    @id @default(uuid())
+  communityId String
+  userId      String
+  role        String    @default("member")
+  joinedAt    DateTime  @default(now())
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  user        Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([communityId, userId])
+  @@index([userId])
 }
 
 model ConnectedGoogleAccount {

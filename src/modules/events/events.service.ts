@@ -8,10 +8,13 @@ import { EventStatus } from '@prisma/client'; // 🆕 Import the new enum
 export class EventsService {
   constructor(private prisma: PrismaService) {}
 
-   // 🆕 Update your list method to only show active events on the public feed
-    async list() {
+   // Show every public event, plus private ones this user hosts or was invited to
+    async list(userId: string) {
     return this.prisma.event.findMany({
-      where: { status: EventStatus.ACTIVE }, 
+      where: {
+        status: EventStatus.ACTIVE,
+        OR: [{ isPrivate: false }, { hostId: userId }, { invites: { some: { userId } } }],
+      },
       include: {
         _count: { select: { attendees: true } }
       }, // <-- Check to make sure this brace is closed properly
@@ -19,26 +22,58 @@ export class EventsService {
     });
   }
 
-  async get(id: string) {
+  async get(id: string, userId?: string) {
     const event = await this.prisma.event.findUnique({ where: { id } });
     if (!event) throw new NotFoundException(`Event with ID "${id}" not found`);
+    if (userId) await this.assertVisible(event, userId);
     return event;
   }
 
+  private async assertVisible(event: { id: string; isPrivate: boolean; hostId: string }, userId: string) {
+    if (!event.isPrivate || event.hostId === userId) return;
+    const invited = await this.prisma.eventInvite.findUnique({
+      where: { eventId_userId: { eventId: event.id, userId } },
+    });
+    if (!invited) throw new ForbiddenException('This event is invite-only.');
+  }
+
     async create(dto: CreateEventDto, hostId: string) {
-    return this.prisma.event.create({
+    const event = await this.prisma.event.create({
       data: {
         title: dto.title,
         description: dto.description || '',
         location: dto.location,
         startsAt: new Date(dto.startsAt),
         // If endsAt is supplied, build Date, otherwise leave undefined/null
-        endsAt: dto.endsAt ? new Date(dto.endsAt) : null, 
+        endsAt: dto.endsAt ? new Date(dto.endsAt) : null,
         latitude: dto.latitude,
         longitude: dto.longitude,
         hostId: hostId,
+        isPrivate: dto.isPrivate ?? false,
+        communityId: dto.communityId ?? null,
       },
     });
+
+    if (event.isPrivate) {
+      const inviteeIds = new Set(dto.inviteeIds ?? []);
+      if (dto.communityId) {
+        const members = await this.prisma.communityMember.findMany({
+          where: { communityId: dto.communityId },
+          select: { userId: true },
+        });
+        members.forEach((member) => inviteeIds.add(member.userId));
+      }
+      inviteeIds.delete(hostId);
+
+      if (inviteeIds.size > 0) {
+        await this.prisma.eventInvite.createMany({
+          data: Array.from(inviteeIds).map((userId) => ({ eventId: event.id, userId })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    return event;
   }
 
 
@@ -80,8 +115,8 @@ export class EventsService {
   }
 
     async toggleRsvp(eventId: string, userId: string) {
-    // 1. Ensure the event actually exists first
-    await this.get(eventId);
+    // 1. Ensure the event actually exists first, and this user can see it
+    await this.get(eventId, userId);
 
     // 2. Check if this specific user has already RSVP'd
     const existingAttendee = await this.prisma.eventAttendee.findUnique({
@@ -113,9 +148,9 @@ export class EventsService {
     return { status: 'confirmed', message: 'Successfully registered for event', data: newAttendee };
   }
 
-    async getAttendees(eventId: string) {
-    // 1. Verify the event exists first
-    await this.get(eventId);
+    async getAttendees(eventId: string, userId: string) {
+    // 1. Verify the event exists first, and this user can see it
+    await this.get(eventId, userId);
 
     // 2. Fetch all attendees along with their profile data
     const rsvps = await this.prisma.eventAttendee.findMany({
