@@ -22,6 +22,7 @@ export class OnboardingService {
       data: {
         role: dto.memberRole as any,
         onboardingGoals: dto.goals ?? [],
+        lookingFor: dto.goals ?? [],
         onboardingStep: dto.step,
       },
     });
@@ -47,6 +48,7 @@ export class OnboardingService {
         role: dto.memberRole as any,
 
         onboardingGoals: goals,
+        lookingFor: goals,
         onboardingCompleted: true,
         onboardingStep: 'completed',
         profileCompletion:
