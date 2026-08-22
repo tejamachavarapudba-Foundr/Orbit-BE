@@ -169,6 +169,7 @@ export class ProfilesService {
             industries: roleProfile.data?.industries ?? [],
             mentorshipAreas: roleProfile.data?.mentorshipAreas ?? [],
             certifications: roleProfile.data?.certifications ?? [],
+            experiences: roleProfile.data?.experiences ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
           create: {
@@ -178,6 +179,7 @@ export class ProfilesService {
             industries: roleProfile.data?.industries ?? [],
             mentorshipAreas: roleProfile.data?.mentorshipAreas ?? [],
             certifications: roleProfile.data?.certifications ?? [],
+            experiences: roleProfile.data?.experiences ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
         });
@@ -197,6 +199,7 @@ export class ProfilesService {
             specialization: roleProfile.data?.specialization ?? '',
             specializationOther: roleProfile.data?.specializationOther ?? '',
             certifications: roleProfile.data?.certifications ?? [],
+            experiences: roleProfile.data?.experiences ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
           create: {
@@ -208,6 +211,7 @@ export class ProfilesService {
             specialization: roleProfile.data?.specialization ?? '',
             specializationOther: roleProfile.data?.specializationOther ?? '',
             certifications: roleProfile.data?.certifications ?? [],
+            experiences: roleProfile.data?.experiences ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
         });

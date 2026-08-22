@@ -124,7 +124,8 @@ model AdvisorProfile {
   yearsExperience String   @default("")
   industries      String[]
   mentorshipAreas String[]
-  certifications  String[]
+  certifications  Json     @default("[]")
+  experiences     Json     @default("[]")
   goals           String[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -137,7 +138,8 @@ model ProfessionalProfile {
   experienceLevel    String   @default("")
   portfolio          String   @default("")
   resume             String   @default("")
-  certifications     String[]
+  certifications     Json     @default("[]")
+  experiences        Json     @default("[]")
   goals              String[]
   specialization     String   @default("")
   specializationOther String  @default("")

@@ -37,8 +37,14 @@ export class VerificationService {
       // Investor/professional/advisor/service-provider have no proof of authenticity to
       // check — "verified" here just means the relevant self-declared fields are filled in.
       investorVerified: Boolean(profile.company.trim() && profile.website.trim()),
-      professionalVerified: Boolean(profile.professionalProfile?.experienceLevel?.trim()),
-      advisorVerified: Boolean(profile.advisorProfile?.yearsExperience?.trim()),
+      professionalVerified: Boolean(
+        profile.professionalProfile?.experienceLevel?.trim() ||
+          (Array.isArray(profile.professionalProfile?.experiences) && profile.professionalProfile.experiences.length > 0),
+      ),
+      advisorVerified: Boolean(
+        profile.advisorProfile?.yearsExperience?.trim() ||
+          (Array.isArray(profile.advisorProfile?.experiences) && profile.advisorProfile.experiences.length > 0),
+      ),
       serviceProviderVerified: Boolean(
         profile.serviceProviderProfile?.company?.trim() &&
           profile.serviceProviderProfile?.website?.trim() &&
