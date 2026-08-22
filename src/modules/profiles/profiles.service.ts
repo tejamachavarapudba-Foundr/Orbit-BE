@@ -168,6 +168,7 @@ export class ProfilesService {
             yearsExperience: roleProfile.data?.yearsExperience ?? '',
             industries: roleProfile.data?.industries ?? [],
             mentorshipAreas: roleProfile.data?.mentorshipAreas ?? [],
+            certifications: roleProfile.data?.certifications ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
           create: {
@@ -176,6 +177,7 @@ export class ProfilesService {
             yearsExperience: roleProfile.data?.yearsExperience ?? '',
             industries: roleProfile.data?.industries ?? [],
             mentorshipAreas: roleProfile.data?.mentorshipAreas ?? [],
+            certifications: roleProfile.data?.certifications ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
         });
@@ -194,6 +196,7 @@ export class ProfilesService {
             resume: roleProfile.data?.resume ?? '',
             specialization: roleProfile.data?.specialization ?? '',
             specializationOther: roleProfile.data?.specializationOther ?? '',
+            certifications: roleProfile.data?.certifications ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
           create: {
@@ -204,6 +207,7 @@ export class ProfilesService {
             resume: roleProfile.data?.resume ?? '',
             specialization: roleProfile.data?.specialization ?? '',
             specializationOther: roleProfile.data?.specializationOther ?? '',
+            certifications: roleProfile.data?.certifications ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
         });
@@ -219,6 +223,7 @@ export class ProfilesService {
             company: roleProfile.data?.company ?? '',
             services: roleProfile.data?.services ?? [],
             website: roleProfile.data?.website ?? '',
+            companyLinkedinUrl: roleProfile.data?.companyLinkedinUrl ?? '',
             clientIndustries: roleProfile.data?.clientIndustries ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
@@ -227,6 +232,7 @@ export class ProfilesService {
             company: roleProfile.data?.company ?? '',
             services: roleProfile.data?.services ?? [],
             website: roleProfile.data?.website ?? '',
+            companyLinkedinUrl: roleProfile.data?.companyLinkedinUrl ?? '',
             clientIndustries: roleProfile.data?.clientIndustries ?? [],
             goals: roleProfile.data?.goals ?? [],
           },

@@ -15,12 +15,19 @@ export class ProjectsService {
   ) {}
 
   async list() {
-  return this.prisma.project.findMany({
-    include: {
-      investorSnapshot: true,
-    },
-  });
-}
+    const projects = await this.prisma.project.findMany({
+      include: {
+        investorSnapshot: true,
+        owner: { select: { founderVerification: { select: { status: true } } } },
+      },
+    });
+
+    return projects.map((project: any) => ({
+      ...project,
+      founderVerified: project.owner?.founderVerification?.status === 'approved',
+      owner: undefined,
+    }));
+  }
 
   async create(userId: string, dto: any) {
   return this.prisma.project.create({

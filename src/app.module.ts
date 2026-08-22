@@ -37,6 +37,7 @@ import { InvestorSnapshotModule } from './modules/investor-snapshot/investor-sna
 import { MeetingsModule } from './modules/meetings/meetings.module';
 import { CommunitiesModule } from './modules/communities/communities.module';
 import { StorageModule } from './modules/storage/storage.module';
+import { VerificationModule } from './modules/verification/verification.module';
 
 @Module({
   imports: [
@@ -80,6 +81,7 @@ import { StorageModule } from './modules/storage/storage.module';
     MeetingsModule,
     CommunitiesModule,
     StorageModule,
+    VerificationModule,
   ],
   controllers: [AppController],
 })

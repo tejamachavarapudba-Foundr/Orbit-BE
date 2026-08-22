@@ -25,7 +25,7 @@ export class StartupsService {
       }
     }
 
-    return await this.prisma.project.findMany({
+    const startups = await this.prisma.project.findMany({
       where: {
         stage: stageFilter,
         // Fixes TS2353: Wraps projectType/industry dynamically to bypass strict schema keys
@@ -35,7 +35,16 @@ export class StartupsService {
       skip,
       take: limit,
       orderBy: { createdAt: 'desc' },
+      include: {
+        owner: { select: { founderVerification: { select: { status: true } } } },
+      },
     });
+
+    return startups.map((startup: any) => ({
+      ...startup,
+      founderVerified: startup.owner?.founderVerification?.status === 'approved',
+      owner: undefined,
+    }));
   }
 
   // ==========================================
@@ -46,6 +55,7 @@ export class StartupsService {
     const startups = await this.prisma.project.findMany({
       include: {
         investorSnapshot: true,
+        owner: { select: { founderVerification: { select: { status: true } } } },
 
         _count: {
           select: {
@@ -120,6 +130,8 @@ export class StartupsService {
         ...startup,
         posts: undefined, // Strips deep arrays from the response payload for a clean look
         reviews: undefined,
+        founderVerified: startup.owner?.founderVerification?.status === 'approved',
+        owner: undefined,
         baseScore: parseFloat(totalBaseScore.toFixed(2)),
         trendingScore: parseFloat(decayedTrendingScore.toFixed(4))
       };
@@ -138,7 +150,7 @@ export class StartupsService {
     const startup = await this.prisma.project.findUnique({
       where: { id },
       include: {
-        owner: true,        // Includes the founder profile details
+        owner: { include: { founderVerification: true } }, // Includes the founder profile details
         applications: true, // Includes partner applications
         posts: true,        // Includes social updates feed
         reviews: true,      // Includes 1-5 star ratings
@@ -156,7 +168,11 @@ export class StartupsService {
     if (!startup) {
       throw new NotFoundException(`Startup with ID ${id} not found`);
     }
-    return startup;
+
+    return {
+      ...startup,
+      founderVerified: (startup.owner as any)?.founderVerification?.status === 'approved',
+    };
   }
 
   // ==========================================
@@ -201,7 +217,7 @@ export class StartupsService {
   }
 
   async getInvestorDiscovery() {
-    return this.prisma.project.findMany({
+    const startups = await this.prisma.project.findMany({
       where: {
         investorSnapshot: {
           isCompleted: true,
@@ -210,11 +226,18 @@ export class StartupsService {
 
       include: {
         investorSnapshot: true,
+        owner: { select: { founderVerification: { select: { status: true } } } },
       },
 
       orderBy: {
         createdAt: "desc",
       },
     });
+
+    return startups.map((startup: any) => ({
+      ...startup,
+      founderVerified: startup.owner?.founderVerification?.status === 'approved',
+      owner: undefined,
+    }));
   }
 }

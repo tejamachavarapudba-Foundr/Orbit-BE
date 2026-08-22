@@ -54,6 +54,9 @@ model Profile {
   resumeFileSize             Int?
   resumeKey                  String?
   resumeUpdatedAt            DateTime?
+  identityVerified            Boolean                 @default(false)
+  identityVerifiedAt          DateTime?
+  founderVerification        FounderVerification?
   advisorProfile             AdvisorProfile?
   following                  Connection[]            @relation("Follower")
   followers                  Connection[]            @relation("Following")
@@ -121,6 +124,7 @@ model AdvisorProfile {
   yearsExperience String   @default("")
   industries      String[]
   mentorshipAreas String[]
+  certifications  String[]
   goals           String[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -133,6 +137,7 @@ model ProfessionalProfile {
   experienceLevel    String   @default("")
   portfolio          String   @default("")
   resume             String   @default("")
+  certifications     String[]
   goals              String[]
   specialization     String   @default("")
   specializationOther String  @default("")
@@ -142,15 +147,34 @@ model ProfessionalProfile {
 }
 
 model ServiceProviderProfile {
-  profileId        String   @id
-  company          String   @default("")
-  services         String[]
-  website          String   @default("")
-  clientIndustries String[]
-  goals            String[]
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  profile          Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId          String   @id
+  company            String   @default("")
+  services           String[]
+  website            String   @default("")
+  companyLinkedinUrl String   @default("")
+  clientIndustries   String[]
+  goals              String[]
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  profile            Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+}
+
+model FounderVerification {
+  id              String             @id @default(uuid())
+  profileId       String             @unique
+  documentUrl     String
+  documentKey     String
+  certificateName String
+  cinNumber       String             @default("")
+  status          VerificationStatus @default(pending)
+  reviewedBy      String?
+  reviewNotes     String?
+  reviewedAt      DateTime?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  profile         Profile            @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([status])
 }
 
 model Connection {
@@ -812,6 +836,12 @@ enum ApplicationStatus {
   accepted
   rejected
   withdrawn
+}
+
+enum VerificationStatus {
+  pending
+  approved
+  rejected
 }
 
 enum PostCategory {
