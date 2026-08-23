@@ -33,8 +33,8 @@ export class GoogleOAuthService {
     return process.env.GOOGLE_OAUTH_REDIRECT_URI ?? '';
   }
 
-  buildAuthUrl(userId: string) {
-    const state = this.jwt.sign({ sub: userId });
+  buildAuthUrl(userId: string, platform: 'web' | 'mobile' = 'mobile') {
+    const state = this.jwt.sign({ sub: userId, platform });
     const params = new URLSearchParams({
       client_id: this.clientId,
       redirect_uri: this.redirectUri,
@@ -45,6 +45,18 @@ export class GoogleOAuthService {
       state,
     });
     return `${GOOGLE_AUTH_URL}?${params.toString()}`;
+  }
+
+  /** Recovers which platform initiated the OAuth flow from the (possibly
+   * unverifiable, e.g. expired) state token, so the callback can redirect
+   * to the right place even when handleCallback itself is about to fail. */
+  decodePlatform(state: string): 'web' | 'mobile' {
+    try {
+      const payload = this.jwt.decode<{ platform?: 'web' | 'mobile' }>(state);
+      return payload?.platform === 'web' ? 'web' : 'mobile';
+    } catch {
+      return 'mobile';
+    }
   }
 
   async handleCallback(code: string, state: string) {

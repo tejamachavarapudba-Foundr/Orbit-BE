@@ -8,12 +8,12 @@ import { GoogleOAuthService } from './google-oauth.service';
 export class GoogleController {
   constructor(private readonly oauth: GoogleOAuthService) {}
 
-  // GET /google/oauth/url
+  // GET /google/oauth/url?platform=web|mobile
   @UseGuards(JwtAuthGuard)
   @Get('url')
-  getAuthUrl(@Req() req: any) {
+  getAuthUrl(@Req() req: any, @Query('platform') platform?: string) {
     const userId = req.user.id || req.user.sub;
-    return { url: this.oauth.buildAuthUrl(userId) };
+    return { url: this.oauth.buildAuthUrl(userId, platform === 'web' ? 'web' : 'mobile') };
   }
 
   // GET /google/oauth/status
@@ -37,15 +37,18 @@ export class GoogleController {
   @Get('callback')
   async callback(@Query('code') code: string, @Query('state') state: string, @Res() res: Response) {
     const deepLink = process.env.APP_OAUTH_DEEP_LINK ?? 'com.startuphouze.app://oauth-callback';
+    const webUrl = process.env.WEB_APP_URL ?? 'https://orbit-web-khaki.vercel.app';
+    const platform = state ? this.oauth.decodePlatform(state) : 'mobile';
+    const target = platform === 'web' ? `${webUrl}/meetings` : deepLink;
 
     try {
       if (!code || !state) {
         throw new Error('Missing code or state');
       }
       await this.oauth.handleCallback(code, state);
-      res.redirect(`${deepLink}?status=success`);
+      res.redirect(`${target}?status=success`);
     } catch {
-      res.redirect(`${deepLink}?status=error`);
+      res.redirect(`${target}?status=error`);
     }
   }
 }
