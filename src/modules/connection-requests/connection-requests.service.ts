@@ -24,17 +24,19 @@ export class ConnectionRequestsService {
       );
     }
 
-    // 1. Check if they are already connected
-    const existingConnection = await this.prisma.connection.findUnique({
-      where: {
-        followerId_followingId: {
-          followerId: requesterId,
-          followingId: recipientId,
-        },
-      },
-    });
+    // 1. Check if they are already mutually connected. A Connection row only
+    // in one direction means one side follows the other without having
+    // connected — that shouldn't block a real connection request.
+    const [forwardEdge, reverseEdge] = await Promise.all([
+      this.prisma.connection.findUnique({
+        where: { followerId_followingId: { followerId: requesterId, followingId: recipientId } },
+      }),
+      this.prisma.connection.findUnique({
+        where: { followerId_followingId: { followerId: recipientId, followingId: requesterId } },
+      }),
+    ]);
 
-    if (existingConnection) {
+    if (forwardEdge && reverseEdge) {
       throw new BadRequestException('You are already connected with this user');
     }
 
@@ -285,17 +287,19 @@ export class ConnectionRequestsService {
       return { status: 'self' };
     }
 
-    // 1. Check if they are officially connected
-    const isConnected = await this.prisma.connection.findUnique({
-      where: {
-        followerId_followingId: {
-          followerId: currentUserId,
-          followingId: targetUserId,
-        },
-      },
-    });
+    // 1. Check if they are mutually connected — a Connection row exists in
+    // both directions. A row in only one direction is a one-way follow, not
+    // a connection.
+    const [forwardEdge, reverseEdge] = await Promise.all([
+      this.prisma.connection.findUnique({
+        where: { followerId_followingId: { followerId: currentUserId, followingId: targetUserId } },
+      }),
+      this.prisma.connection.findUnique({
+        where: { followerId_followingId: { followerId: targetUserId, followingId: currentUserId } },
+      }),
+    ]);
 
-    if (isConnected) {
+    if (forwardEdge && reverseEdge) {
       return { status: 'connected' };
     }
 
@@ -321,13 +325,8 @@ export class ConnectionRequestsService {
   }
 
   async getConnectionCount(userId: string) {
-    const count = await this.prisma.connection.count({
-      where: {
-        followerId: userId,
-      },
-    });
-
-    return { count };
+    const profiles = await this.getConnectedProfiles(userId);
+    return { count: profiles.length };
   }
 
   async getConnectedProfiles(userId: string) {
@@ -352,9 +351,22 @@ export class ConnectionRequestsService {
     },
   });
 
+  // A Connection row only exists in one direction for a one-way follow —
+  // only rows with a matching reverse edge are real, mutual connections.
+  const reverseEdges = connections.length
+    ? await this.prisma.connection.findMany({
+        where: {
+          followerId: { in: connections.map((conn) => conn.following.id) },
+          followingId: userId,
+        },
+        select: { followerId: true },
+      })
+    : [];
+  const mutualIds = new Set(reverseEdges.map((edge) => edge.followerId));
+
   // Safety filter to ensure no self-connections slip through from old test logs
   return connections
-    .filter((conn) => conn.following.id !== userId)
+    .filter((conn) => conn.following.id !== userId && mutualIds.has(conn.following.id))
     .map((conn) => ({
       connectionId: conn.id,
       connectedAt: conn.createdAt,
