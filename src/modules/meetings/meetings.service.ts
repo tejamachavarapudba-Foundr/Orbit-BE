@@ -242,11 +242,11 @@ export class MeetingsService {
       const chosen = proposedSlots.find((s) => s.date === dto.selectedSlot?.date && s.time === dto.selectedSlot?.time);
       if (!chosen) throw new BadRequestException('selectedSlot must be one of the proposed dates');
 
-      await this.prisma.proposalInvitee.update({
-        where: { id: invitee.id },
-        data: { response: 'accepted', selectedSlot: chosen as unknown as object, respondedAt: new Date() },
-      });
-
+      // Confirm on Google Calendar first — it's the step most likely to fail
+      // (e.g. the organizer never connected Google Meet). Only record the
+      // invitee's acceptance once the meeting actually exists, so a failure
+      // here leaves the proposal untouched and safely retryable instead of
+      // stranding it "accepted" with no meeting behind it.
       const meeting = await this.confirmMeeting(
         proposal.id,
         proposal.organizerId,
@@ -256,6 +256,11 @@ export class MeetingsService {
         proposal.purpose,
         proposal.message ?? undefined,
       );
+
+      await this.prisma.proposalInvitee.update({
+        where: { id: invitee.id },
+        data: { response: 'accepted', selectedSlot: chosen as unknown as object, respondedAt: new Date() },
+      });
 
       await this.notifications.createNotification(
         proposal.organizerId,
