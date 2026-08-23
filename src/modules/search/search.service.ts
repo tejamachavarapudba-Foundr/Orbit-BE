@@ -1,7 +1,21 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
-
+const MEMBER_ROLES = new Set([
+  'founder',
+  'co_founder',
+  'software_engineer',
+  'mentor',
+  'policy_maker',
+  'investor',
+  'designer',
+  'product_manager',
+  'other',
+  'developer',
+  'advisor',
+  'professional',
+  'service_provider',
+]);
 
 @Injectable()
 export class SearchService {
@@ -15,9 +29,14 @@ export class SearchService {
     };
 
     // 1. DOMAIN MAPPING & SANITIZATION ENGINE
-    const cleanRole = (roleFilter && roleFilter.toLowerCase() !== 'all roles') 
-      ? roleFilter.replace('-', '_').replace(' ', '_').toLowerCase() 
+    const cleanRole = (roleFilter && roleFilter.toLowerCase() !== 'all roles')
+      ? roleFilter.replace('-', '_').replace(' ', '_').toLowerCase()
       : undefined;
+
+    // Typing a bare role name (e.g. "founder", "software engineer") should
+    // also match people with that role, not just people literally named it.
+    const normalizedKeywordRole = keyword.trim().toLowerCase().replace(/[\s-]+/g, '_');
+    const inferredRole = MEMBER_ROLES.has(normalizedKeywordRole) ? normalizedKeywordRole : undefined;
 
     const cleanStage = (stageFilter && stageFilter.toLowerCase() !== 'all stages') 
       ? stageFilter.replace('-', '_').replace(' ', '_').toLowerCase() 
@@ -57,6 +76,9 @@ export class SearchService {
                     OR: [
                       { fullName: textMatch },
                       { bio: textMatch },
+                      { headline: textMatch },
+                      { company: textMatch },
+                      ...(inferredRole ? [{ role: { equals: inferredRole as any } }] : []),
                     ]
                   }
                 }
@@ -137,7 +159,17 @@ export class SearchService {
         where: {
           OR: [
             { email: textMatch },
-            { profile: { OR: [{ fullName: textMatch }] } }
+            {
+              profile: {
+                OR: [
+                  { fullName: textMatch },
+                  { headline: textMatch },
+                  { bio: textMatch },
+                  { company: textMatch },
+                  ...(inferredRole ? [{ role: { equals: inferredRole as any } }] : []),
+                ]
+              }
+            }
           ]
         },
         include: { profile: true },
@@ -148,7 +180,10 @@ export class SearchService {
           OR: [
             { name: textMatch },
             { tagline: textMatch },
-            { description: textMatch }
+            { description: textMatch },
+            { category: textMatch },
+            { industryTags: { hasSome: [keyword] } },
+            { techStack: { hasSome: [keyword] } },
           ]
         },
         take: limit,
