@@ -14,15 +14,16 @@ export class AdminController {
     return this.svc.getPlatformStats();
   }
 
-  // 2. GET /admin/users (Paginated user list with sorting)
+  // 2. GET /admin/users (Paginated, searchable user list)
   @Get('users')
   getUsers(
     @Query('limit') limit?: string,
     @Query('page') page?: string,
+    @Query('search') search?: string,
   ) {
     const parsedLimit = limit ? parseInt(limit, 10) : 20;
     const parsedPage = page ? parseInt(page, 10) : 1;
-    return this.svc.listUsers(parsedLimit, parsedPage);
+    return this.svc.listUsers(parsedLimit, parsedPage, search);
   }
 
   // 3. PATCH /admin/users/:id/ban (Toggle ban/unban status)
@@ -32,10 +33,24 @@ export class AdminController {
     return this.svc.toggleUserBan(id, adminId);  // Pass both arguments safely
   }
 
-  // 4. DELETE /admin/posts/:id (Purge content violations)
+  // 4a. GET /admin/posts (Paginated, searchable post list — lets an admin
+  // find a post's ID by author or content instead of needing it upfront)
+  @Get('posts')
+  getPosts(
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+    @Query('search') search?: string,
+  ) {
+    const parsedLimit = limit ? parseInt(limit, 10) : 20;
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    return this.svc.listPosts(parsedLimit, parsedPage, search);
+  }
+
+  // 4b. DELETE /admin/posts/:id (Purge content violations)
   @Delete('posts/:id')
-  deletePost(@Param('id') id: string) {
-    return this.svc.removePost(id);
+  deletePost(@Param('id') id: string, @Req() req: any) {
+    const adminId = req.user.id || req.user.sub;
+    return this.svc.removePost(id, adminId);
   }
 
     // 5. GET /admin/projects (Monitor all listed projects/startups)

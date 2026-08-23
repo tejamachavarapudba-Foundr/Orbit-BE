@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -58,11 +59,22 @@ export class AdminService {
   // ==========================================
   // 2. MODERATOR USER REGISTRY
   // ==========================================
-  async listUsers(limit: number, page: number) {
+  async listUsers(limit: number, page: number, search?: string) {
     const skip = (page - 1) * limit;
+    const trimmedSearch = search?.trim();
+
+    const where: Prisma.UserWhereInput | undefined = trimmedSearch
+      ? {
+          OR: [
+            { email: { contains: trimmedSearch, mode: 'insensitive' } },
+            { profile: { fullName: { contains: trimmedSearch, mode: 'insensitive' } } },
+          ],
+        }
+      : undefined;
 
     const [users, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
+        where,
         take: limit,
         skip: skip,
         select: {
@@ -76,7 +88,7 @@ export class AdminService {
         },
         orderBy: { createdAt: 'desc' }
       }),
-      this.prisma.user.count()
+      this.prisma.user.count({ where })
     ]);
 
     return {
@@ -119,14 +131,63 @@ export class AdminService {
 
 
   // ==========================================
-  // 4. MALICIOUS CONTENT PURGE UTILITY
+  // 4. CONTENT MODERATION REGISTRY
   // ==========================================
-  async removePost(id: string) {
+  async listPosts(limit: number, page: number, search?: string) {
+    const skip = (page - 1) * limit;
+    const trimmedSearch = search?.trim();
+
+    const where: Prisma.PostWhereInput | undefined = trimmedSearch
+      ? {
+          OR: [
+            { content: { contains: trimmedSearch, mode: 'insensitive' } },
+            { author: { fullName: { contains: trimmedSearch, mode: 'insensitive' } } },
+          ],
+        }
+      : undefined;
+
+    const [posts, total] = await this.prisma.$transaction([
+      this.prisma.post.findMany({
+        where,
+        take: limit,
+        skip,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          author: { select: { id: true, fullName: true, avatarUrl: true } },
+          media: { select: { id: true, url: true, type: true }, take: 1 },
+          _count: { select: { likes: true, comments: true } },
+        },
+      }),
+      this.prisma.post.count({ where }),
+    ]);
+
+    return {
+      data: posts,
+      meta: {
+        totalItems: total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async removePost(id: string, adminId?: string) {
     try {
-      // Assumes your schema contains a standard 'post' table model
-      return await this.prisma.post.delete({
-        where: { id }
+      const deleted = await this.prisma.post.delete({
+        where: { id },
+        include: { author: { select: { fullName: true } } },
       });
+
+      if (adminId) {
+        await this.logAction(
+          adminId,
+          'POST_DELETED',
+          `Admin force-deleted a post by ${deleted.author?.fullName || 'unknown author'}`,
+          id,
+        );
+      }
+
+      return deleted;
     } catch (error) {
       // Prisma error code for target record not found
       if (error.code === 'P2025') {
