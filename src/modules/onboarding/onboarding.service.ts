@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service';
+import { calculateProfileCompletion } from '../profiles/profile-completion.util';
 
 const VALID_MEMBER_ROLES = [
   'founder',
@@ -33,7 +34,7 @@ export class OnboardingService {
     const roleData = dto.roleProfile?.data ?? {};
     const goals: string[] = dto.goals ?? [];
 
-    const profile = await this.prisma.profile.update({
+    await this.prisma.profile.update({
       where: {
         id: userId,
       },
@@ -51,12 +52,6 @@ export class OnboardingService {
         lookingFor: goals,
         onboardingCompleted: true,
         onboardingStep: 'completed',
-        profileCompletion:
-          dto.memberRole === 'founder' ||
-          dto.memberRole === 'co_founder' ||
-          dto.memberRole === 'investor'
-            ? 100
-            : 90,
       },
     });
 
@@ -142,7 +137,22 @@ export class OnboardingService {
         break;
     }
 
-    return profile;
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: userId },
+      include: {
+        founderProfile: true,
+        investorProfile: true,
+        advisorProfile: true,
+        professionalProfile: true,
+        serviceProviderProfile: true,
+      },
+    });
+
+    const completion = calculateProfileCompletion(profile!);
+    return this.prisma.profile.update({
+      where: { id: userId },
+      data: { profileCompletion: completion },
+    });
   }
 
   async getMatches(role: string, goalsParam: string) {

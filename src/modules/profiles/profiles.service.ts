@@ -3,6 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { StorageService } from '../storage/storage.service';
 import { StorageType } from '../storage/enums/storage-type.enum';
+import { calculateProfileCompletion } from './profile-completion.util';
 
 const validProfileRoles = new Set([
   'founder',
@@ -246,24 +247,50 @@ export class ProfilesService {
       /*
        * Return COMPLETE profile
        */
-      return await this.prisma.profile.findUnique({
-        where: {
-          id,
-        },
-
-        include: {
-          founderProfile: true,
-          investorProfile: true,
-          advisorProfile: true,
-          professionalProfile: true,
-          serviceProviderProfile: true,
-        },
-      });
+      return await this.recomputeCompletion(id);
     } catch (error) {
       console.error('PROFILE UPDATE ERROR');
       console.error(error);
       throw error;
     }
+  }
+
+  /**
+   * Recomputes profileCompletion from the profile's actual current fields
+   * (not a role-based flat constant) and persists it if it changed.
+   */
+  private async recomputeCompletion(id: string) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { id },
+      include: {
+        founderProfile: true,
+        investorProfile: true,
+        advisorProfile: true,
+        professionalProfile: true,
+        serviceProviderProfile: true,
+      },
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Profile not found');
+    }
+
+    const completion = calculateProfileCompletion(profile);
+    if (completion === profile.profileCompletion) {
+      return profile;
+    }
+
+    return this.prisma.profile.update({
+      where: { id },
+      data: { profileCompletion: completion },
+      include: {
+        founderProfile: true,
+        investorProfile: true,
+        advisorProfile: true,
+        professionalProfile: true,
+        serviceProviderProfile: true,
+      },
+    });
   }
 
   async updateAvatar(
@@ -323,18 +350,7 @@ export class ProfilesService {
   });
 
   // Return updated profile
-  return this.prisma.profile.findUnique({
-    where: {
-      id: profile.id,
-    },
-    include: {
-      founderProfile: true,
-      investorProfile: true,
-      advisorProfile: true,
-      professionalProfile: true,
-      serviceProviderProfile: true,
-    },
-  });
+  return this.recomputeCompletion(profile.id);
   }
 
     async updateResume(
@@ -388,18 +404,7 @@ export class ProfilesService {
       },
     });
 
-    return this.prisma.profile.findUnique({
-      where: {
-        id: profile.id,
-      },
-      include: {
-        founderProfile: true,
-        investorProfile: true,
-        advisorProfile: true,
-        professionalProfile: true,
-        serviceProviderProfile: true,
-      },
-    });
+    return this.recomputeCompletion(profile.id);
   }
 
     async deleteResume(userId: string) {
