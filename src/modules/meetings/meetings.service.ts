@@ -72,12 +72,13 @@ export class MeetingsService {
       select: { confirmedAt: true, durationMins: true },
     });
 
+    const targetTimezone = slots[0].timezone;
     const busyRanges = busyMeetings.map((meeting) => {
-      const startMinutes = meeting.confirmedAt.getUTCHours() * 60 + meeting.confirmedAt.getUTCMinutes();
+      const { dateStr, minutes } = this.wallClockInZone(meeting.confirmedAt, targetTimezone);
       return {
-        date: meeting.confirmedAt.toISOString().slice(0, 10),
-        startMinutes,
-        endMinutes: startMinutes + meeting.durationMins,
+        date: dateStr,
+        startMinutes: minutes,
+        endMinutes: minutes + meeting.durationMins,
       };
     });
 
@@ -328,7 +329,7 @@ export class MeetingsService {
     const meeting = await this.prisma.meeting.create({
       data: {
         proposalId,
-        confirmedAt: new Date(startISO),
+        confirmedAt: this.zonedTimeToUtc(startISO, timezone),
         timezone,
         durationMins: DEFAULT_DURATION_MINS,
         meetLink,
@@ -340,6 +341,57 @@ export class MeetingsService {
     await this.prisma.meetingProposal.update({ where: { id: proposalId }, data: { status: 'confirmed' } });
 
     return meeting;
+  }
+
+  /**
+   * `startISO` is a naive "wall clock" string (no offset) meaning the time
+   * as experienced in `timeZone` — e.g. "2026-08-24T04:20:00" + "Asia/Kolkata"
+   * means 4:20am IST. `new Date(startISO)` would parse those digits as the
+   * server's own runtime zone (UTC on Railway), silently shifting the real
+   * instant by the zone's offset. This converts it to the true UTC instant
+   * instead, using the standard guess-then-correct trick since Node has no
+   * built-in "parse wall clock time in an arbitrary IANA zone" API.
+   */
+  private zonedTimeToUtc(naiveIso: string, timeZone: string): Date {
+    const guessUtc = new Date(`${naiveIso}Z`);
+    const partsInZone = this.formatPartsInZone(guessUtc, timeZone);
+    const asIfLocal = Date.UTC(
+      Number(partsInZone.year),
+      Number(partsInZone.month) - 1,
+      Number(partsInZone.day),
+      Number(partsInZone.hour),
+      Number(partsInZone.minute),
+      Number(partsInZone.second),
+    );
+    const offsetMs = guessUtc.getTime() - asIfLocal;
+    return new Date(guessUtc.getTime() + offsetMs);
+  }
+
+  /** The inverse read: given a true UTC instant, what's the wall-clock date
+   * and minutes-of-day in `timeZone`. */
+  private wallClockInZone(date: Date, timeZone: string): { dateStr: string; minutes: number } {
+    const parts = this.formatPartsInZone(date, timeZone);
+    return {
+      dateStr: `${parts.year}-${parts.month}-${parts.day}`,
+      minutes: Number(parts.hour) * 60 + Number(parts.minute),
+    };
+  }
+
+  private formatPartsInZone(date: Date, timeZone: string): Record<string, string> {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hourCycle: 'h23',
+    });
+    return dtf.formatToParts(date).reduce<Record<string, string>>((acc, part) => {
+      if (part.type !== 'literal') acc[part.type] = part.value;
+      return acc;
+    }, {});
   }
 
   private addMinutesToLocalIso(localIso: string, minutes: number) {
