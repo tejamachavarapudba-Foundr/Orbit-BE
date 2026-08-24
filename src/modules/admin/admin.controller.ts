@@ -81,8 +81,51 @@ export class AdminController {
 
   // 7. GET /admin/audit-logs (Track system changes for platform security)
   @Get('audit-logs')
-  getAuditLogs() {
-    return this.svc.getSystemLogs();
+  getAuditLogs(
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+  ) {
+    const parsedLimit = limit ? parseInt(limit, 10) : 50;
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    return this.svc.getSystemLogs(parsedLimit, parsedPage);
   }
-  
+
+  // 8. GET /admin/analytics (Growth, engagement, funnel and health metrics)
+  @Get('analytics')
+  getAnalytics() {
+    return this.svc.getAnalytics();
+  }
+
+  // 9. Jobs moderation
+  @Get('jobs')
+  getJobs(@Query('limit') limit?: string, @Query('page') page?: string, @Query('search') search?: string) {
+    return this.svc.listJobs(limit ? parseInt(limit, 10) : 20, page ? parseInt(page, 10) : 1, search);
+  }
+
+  @Delete('jobs/:id')
+  deleteJob(@Param('id') id: string, @Req() req: any) {
+    return this.svc.removeJob(id, req.user.id || req.user.sub);
+  }
+
+  // 10. Events moderation
+  @Get('events')
+  getEvents(@Query('limit') limit?: string, @Query('page') page?: string, @Query('search') search?: string) {
+    return this.svc.listEvents(limit ? parseInt(limit, 10) : 20, page ? parseInt(page, 10) : 1, search);
+  }
+
+  @Delete('events/:id')
+  deleteEvent(@Param('id') id: string, @Req() req: any) {
+    return this.svc.removeEvent(id, req.user.id || req.user.sub);
+  }
+
+  // 11. Communities moderation
+  @Get('communities')
+  getCommunities(@Query('limit') limit?: string, @Query('page') page?: string, @Query('search') search?: string) {
+    return this.svc.listCommunities(limit ? parseInt(limit, 10) : 20, page ? parseInt(page, 10) : 1, search);
+  }
+
+  @Delete('communities/:id')
+  deleteCommunity(@Param('id') id: string, @Req() req: any) {
+    return this.svc.removeCommunity(id, req.user.id || req.user.sub);
+  }
 }

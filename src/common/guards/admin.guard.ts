@@ -17,8 +17,11 @@ export class AdminGuard implements CanActivate {
       throw new ForbiddenException('Access Denied: Verification role properties are missing');
     }
 
-    // 3. Bulletproof Case-Insensitive Check (Matches 'admin', 'ADMIN', or 'Admin')
-    if (userRole.toUpperCase() !== 'ADMIN') {
+    // 3. Case-insensitive check — SUPER_USER is a strict superset of ADMIN
+    // (can also create admins, change roles, hard-delete accounts via
+    // SuperUserGuard-protected routes), so it must pass this gate too.
+    const role = userRole.toUpperCase();
+    if (role !== 'ADMIN' && role !== 'SUPER_USER') {
       throw new ForbiddenException('Access Denied: Administrative privileges required');
     }
 
