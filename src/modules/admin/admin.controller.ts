@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Delete, Param, UseGuards, Query, Req, Body } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, UseGuards, Query, Req, Body } from '@nestjs/common';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
@@ -51,6 +51,25 @@ export class AdminController {
   deletePost(@Param('id') id: string, @Req() req: any) {
     const adminId = req.user.id || req.user.sub;
     return this.svc.removePost(id, adminId);
+  }
+
+  // 4c. GET /admin/post-reports?status=open|dismissed|actioned (Moderation queue)
+  @Get('post-reports')
+  getPostReports(
+    @Query('limit') limit?: string,
+    @Query('page') page?: string,
+    @Query('status') status?: string,
+  ) {
+    const parsedLimit = limit ? parseInt(limit, 10) : 20;
+    const parsedPage = page ? parseInt(page, 10) : 1;
+    return this.svc.listPostReports(parsedLimit, parsedPage, status);
+  }
+
+  // 4d. POST /admin/post-reports/:id/resolve
+  @Post('post-reports/:id/resolve')
+  resolvePostReport(@Param('id') id: string, @Body('status') status: 'dismissed' | 'actioned', @Req() req: any) {
+    const adminId = req.user.id || req.user.sub;
+    return this.svc.resolvePostReport(id, status, adminId);
   }
 
     // 5. GET /admin/projects (Monitor all listed projects/startups)

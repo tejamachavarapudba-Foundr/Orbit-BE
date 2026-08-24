@@ -13,7 +13,10 @@ export class PostsController {
   constructor(private svc: PostsService) {}
 
   @Get()
-  list() { return this.svc.list(); }
+  list(@Req() req: any) {
+    const userId = req.user.id || req.user.sub;
+    return this.svc.list(userId);
+  }
 
   @Get('saved')
   listSaved(@Req() req: any) {
@@ -28,6 +31,18 @@ export class PostsController {
   toggleSave(@Param('id') id: string, @Req() req: any) {
     const userId = req.user.id || req.user.sub;
     return this.svc.toggleSave(userId, id);
+  }
+
+  @Post(':id/report')
+  reportPost(@Param('id') id: string, @Body() body: { reason?: string }, @Req() req: any) {
+    const userId = req.user.id || req.user.sub;
+    return this.svc.reportPost(userId, id, body?.reason ?? '');
+  }
+
+  @Post(':id/not-interested')
+  markNotInterested(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user.id || req.user.sub;
+    return this.svc.markNotInterested(userId, id);
   }
 
   @Post()

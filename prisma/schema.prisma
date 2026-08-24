@@ -78,6 +78,8 @@ model Profile {
   postComments               PostComment[]
   postLikes                  PostLike[]
   savedPosts                 SavedPost[]
+  postReports                PostReport[]
+  notInterestedPosts         PostNotInterested[]
   professionalProfile        ProfessionalProfile?
   user                       User                    @relation(fields: [id], references: [id], onDelete: Cascade)
   projects                   Project[]               @relation("ProjectOwner")
@@ -350,6 +352,8 @@ model Post {
   likes     PostLike[]
   media     PostMedia[]
   savedBy   SavedPost[]
+  reports   PostReport[]
+  notInterestedBy PostNotInterested[]
 
   @@index([createdAt])
   @@index([authorId])
@@ -364,6 +368,33 @@ model SavedPost {
   user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+  @@index([userId])
+}
+
+model PostReport {
+  id         String   @id @default(uuid())
+  postId     String
+  reporterId String
+  reason     String   @default("")
+  status     String   @default("open") // open | dismissed | actioned
+  createdAt  DateTime @default(now())
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter   Profile  @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, reporterId])
+  @@index([postId])
+  @@index([status])
+}
+
+model PostNotInterested {
+  id        String   @id @default(uuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
   @@index([userId])
 }
 

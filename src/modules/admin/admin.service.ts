@@ -197,6 +197,64 @@ export class AdminService {
     }
   }
 
+  async listPostReports(limit: number, page: number, status?: string) {
+    const skip = (page - 1) * limit;
+    const where: Prisma.PostReportWhereInput | undefined = status ? { status } : undefined;
+
+    const [reports, total] = await this.prisma.$transaction([
+      this.prisma.postReport.findMany({
+        where,
+        take: limit,
+        skip,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          reporter: { select: { id: true, fullName: true, avatarUrl: true } },
+          post: {
+            select: {
+              id: true,
+              content: true,
+              author: { select: { id: true, fullName: true, avatarUrl: true } },
+              media: { select: { id: true, url: true, type: true }, take: 1 },
+              _count: { select: { reports: true } },
+            },
+          },
+        },
+      }),
+      this.prisma.postReport.count({ where }),
+    ]);
+
+    return {
+      data: reports,
+      meta: {
+        totalItems: total,
+        currentPage: page,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async resolvePostReport(id: string, status: 'dismissed' | 'actioned', adminId: string) {
+    const report = await this.prisma.postReport.update({
+      where: { id },
+      data: { status },
+      include: { post: { select: { authorId: true } } },
+    }).catch((error) => {
+      if (error.code === 'P2025') {
+        throw new NotFoundException(`Report with ID ${id} does not exist`);
+      }
+      throw error;
+    });
+
+    await this.logAction(
+      adminId,
+      status === 'actioned' ? 'POST_REPORT_ACTIONED' : 'POST_REPORT_DISMISSED',
+      `Admin ${status === 'actioned' ? 'actioned' : 'dismissed'} a report on a post by ${report.post.authorId}`,
+      report.postId,
+    );
+
+    return report;
+  }
+
     // ==========================================
   // 5. GLOBAL PROJECT WORKSPACE REGISTRY
   // ==========================================

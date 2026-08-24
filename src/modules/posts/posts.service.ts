@@ -14,8 +14,9 @@ export class PostsService {
     private readonly storageService: StorageService,
   ) {}
 
-  async list() {
+  async list(userId?: string) {
     return this.prisma.post.findMany({
+      where: userId ? { notInterestedBy: { none: { userId } } } : undefined,
       include: {
         media: true,
         author: true,
@@ -26,6 +27,34 @@ export class PostsService {
        createdAt: "desc",
       },
     });
+  }
+
+  async reportPost(userId: string, postId: string, reason: string) {
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (!post) throw new NotFoundException(`Post with ID "${postId}" not found.`);
+
+    // Idempotent — a user reporting the same post twice just confirms the
+    // existing report rather than erroring or creating a duplicate.
+    await this.prisma.postReport.upsert({
+      where: { postId_reporterId: { postId, reporterId: userId } },
+      update: {},
+      create: { postId, reporterId: userId, reason: reason ?? '' },
+    });
+
+    return { reported: true };
+  }
+
+  async markNotInterested(userId: string, postId: string) {
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (!post) throw new NotFoundException(`Post with ID "${postId}" not found.`);
+
+    await this.prisma.postNotInterested.upsert({
+      where: { postId_userId: { postId, userId } },
+      update: {},
+      create: { postId, userId },
+    });
+
+    return { notInterested: true };
   }
 
   async listSaved(userId: string) {
