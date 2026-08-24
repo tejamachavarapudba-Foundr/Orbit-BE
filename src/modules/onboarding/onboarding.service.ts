@@ -11,6 +11,14 @@ const VALID_MEMBER_ROLES = [
   'service_provider',
 ];
 
+const fromCsv = (value: unknown): string[] =>
+  typeof value === 'string'
+    ? value
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+
 @Injectable()
 export class OnboardingService {
   constructor(private readonly prisma: PrismaService) {}
@@ -24,9 +32,10 @@ export class OnboardingService {
     // already had. Later steps (goals, quickProfile) then persist real
     // input as the user fills it in, instead of everything only landing at
     // the very end via completeOnboarding — until now saveProgress silently
-    // dropped fullName/headline/location/company/website/linkedinUrl on
-    // every intermediate call.
+    // dropped fullName/headline/location/company/website/linkedinUrl/skills
+    // on every intermediate call.
     const stringField = (value: unknown) => (typeof value === 'string' && value.trim().length > 0 ? value : undefined);
+    const skills = fromCsv(quick.skills);
 
     return this.prisma.profile.update({
       where: {
@@ -43,6 +52,7 @@ export class OnboardingService {
         ...(stringField(quick.company) !== undefined && { company: quick.company }),
         ...(stringField(quick.website) !== undefined && { website: quick.website }),
         ...(stringField(quick.linkedinUrl) !== undefined && { linkedinUrl: quick.linkedinUrl }),
+        ...(skills.length > 0 && { skills }),
       },
     });
   }
@@ -63,6 +73,7 @@ export class OnboardingService {
         company: quick.company ?? '',
         website: quick.website ?? '',
         linkedinUrl: quick.linkedinUrl ?? '',
+        skills: fromCsv(quick.skills),
 
         role: dto.memberRole as any,
 
