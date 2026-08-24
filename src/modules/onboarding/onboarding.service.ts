@@ -16,6 +16,18 @@ export class OnboardingService {
   constructor(private readonly prisma: PrismaService) {}
 
   async saveProgress(userId: string, dto: any) {
+    const quick = dto.quickProfile ?? {};
+
+    // Only write a quickProfile field when it actually has a value — the
+    // "welcome" step sends an all-blank quickProfile (nothing has been typed
+    // yet), and a blind `?? ''` here would erase whatever the profile
+    // already had. Later steps (goals, quickProfile) then persist real
+    // input as the user fills it in, instead of everything only landing at
+    // the very end via completeOnboarding — until now saveProgress silently
+    // dropped fullName/headline/location/company/website/linkedinUrl on
+    // every intermediate call.
+    const stringField = (value: unknown) => (typeof value === 'string' && value.trim().length > 0 ? value : undefined);
+
     return this.prisma.profile.update({
       where: {
         id: userId,
@@ -25,6 +37,12 @@ export class OnboardingService {
         onboardingGoals: dto.goals ?? [],
         lookingFor: dto.goals ?? [],
         onboardingStep: dto.step,
+        ...(stringField(quick.fullName) !== undefined && { fullName: quick.fullName }),
+        ...(stringField(quick.headline) !== undefined && { headline: quick.headline }),
+        ...(stringField(quick.location) !== undefined && { location: quick.location }),
+        ...(stringField(quick.company) !== undefined && { company: quick.company }),
+        ...(stringField(quick.website) !== undefined && { website: quick.website }),
+        ...(stringField(quick.linkedinUrl) !== undefined && { linkedinUrl: quick.linkedinUrl }),
       },
     });
   }
