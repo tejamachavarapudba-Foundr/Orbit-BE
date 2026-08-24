@@ -9,6 +9,7 @@ import { CancelMeetingDto } from './dto/cancel-meeting.dto';
 
 const DEFAULT_DURATION_MINS = 30;
 const OPEN_SLOT_WINDOW_DAYS = 14;
+const MAX_SLOTS_PER_DAY = 6;
 
 const proposalPeopleInclude = {
   organizer: { select: { id: true, fullName: true, avatarUrl: true } },
@@ -96,6 +97,12 @@ export class MeetingsService {
       const day = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + i));
       const dayOfWeek = day.getUTCDay();
       const dateStr = day.toISOString().slice(0, 10);
+      // A single day's availability window (e.g. 9am-5pm) can produce more
+      // half-hour slots on its own than callers ever display (both web and
+      // mobile show only the first ~20 results) — capping per day here is
+      // what actually makes the rest of the week reachable, instead of every
+      // slot in the list coming from today.
+      let addedForDay = 0;
 
       for (const slot of slots.filter((item) => item.dayOfWeek === dayOfWeek)) {
         const [startH, startM] = slot.startTime.split(':').map(Number);
@@ -103,11 +110,12 @@ export class MeetingsService {
         let cursor = startH * 60 + startM;
         const endMinutes = endH * 60 + endM;
 
-        while (cursor + DEFAULT_DURATION_MINS <= endMinutes) {
+        while (cursor + DEFAULT_DURATION_MINS <= endMinutes && addedForDay < MAX_SLOTS_PER_DAY) {
           if ((i > 0 || this.isLaterToday(cursor)) && !overlapsExistingMeeting(dateStr, cursor)) {
             const hh = String(Math.floor(cursor / 60)).padStart(2, '0');
             const mm = String(cursor % 60).padStart(2, '0');
             results.push({ date: dateStr, time: `${hh}:${mm}` });
+            addedForDay += 1;
           }
           cursor += DEFAULT_DURATION_MINS;
         }
@@ -314,6 +322,17 @@ export class MeetingsService {
 
     const startISO = `${slot.date}T${slot.time}:00`;
     const endISO = this.addMinutesToLocalIso(startISO, DEFAULT_DURATION_MINS);
+    const startUtc = this.zonedTimeToUtc(startISO, timezone);
+    const endUtc = new Date(startUtc.getTime() + DEFAULT_DURATION_MINS * 60_000);
+
+    // Neither scheduling path checked this before: availability_pick only
+    // ever checked the invitee's own calendar (via getOpenSlotsFor), never
+    // the organizer's, and date_push checked nothing at all — so the same
+    // person could end up double-booked into two meetings minutes apart,
+    // each with its own real Google Meet link. Check every party (organizer
+    // included) against their other upcoming meetings before this one is
+    // actually created.
+    await this.assertNoOverlap([organizerId, ...inviteeIds], startUtc, endUtc);
 
     const { meetLink, googleEventId } = await this.googleCalendar.createEventWithMeet({
       organizerId,
@@ -329,7 +348,7 @@ export class MeetingsService {
     const meeting = await this.prisma.meeting.create({
       data: {
         proposalId,
-        confirmedAt: this.zonedTimeToUtc(startISO, timezone),
+        confirmedAt: startUtc,
         timezone,
         durationMins: DEFAULT_DURATION_MINS,
         meetLink,
@@ -341,6 +360,30 @@ export class MeetingsService {
     await this.prisma.meetingProposal.update({ where: { id: proposalId }, data: { status: 'confirmed' } });
 
     return meeting;
+  }
+
+  /** Throws if any of `profileIds` already has an upcoming meeting whose
+   * confirmed window overlaps [start, end). */
+  private async assertNoOverlap(profileIds: string[], start: Date, end: Date) {
+    const candidates = await this.prisma.meeting.findMany({
+      where: {
+        status: 'upcoming',
+        proposal: {
+          OR: [{ organizerId: { in: profileIds } }, { invitees: { some: { userId: { in: profileIds } } } }],
+        },
+      },
+      select: { confirmedAt: true, durationMins: true },
+    });
+
+    const overlaps = candidates.some((meeting) => {
+      const existingStart = meeting.confirmedAt.getTime();
+      const existingEnd = existingStart + meeting.durationMins * 60_000;
+      return start.getTime() < existingEnd && end.getTime() > existingStart;
+    });
+
+    if (overlaps) {
+      throw new BadRequestException('This time overlaps a meeting one of the participants already has — pick another slot.');
+    }
   }
 
   /**
