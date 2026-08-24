@@ -483,13 +483,21 @@ export class MeetingsService {
 
   // ---------- My Meetings ----------
 
+  // meetLink is only ever handed out by joinMeeting() — the list views never
+  // expose it, so clicking "Join Google Meet" in the app is the one real way
+  // to reach the call (Google's own invite email is suppressed to match).
+  private hideMeetLink<T extends { meetLink: string | null }>(meeting: T): Omit<T, 'meetLink'> & { meetLink: null } {
+    return { ...meeting, meetLink: null };
+  }
+
   async listMine(profileId: string, tab: 'upcoming' | 'completed' | 'cancelled') {
     if (tab === 'completed') {
-      return this.prisma.meeting.findMany({
+      const meetings = await this.prisma.meeting.findMany({
         where: { status: 'completed', proposal: { OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] } },
         include: { proposal: { include: proposalPeopleInclude }, joins: true },
         orderBy: { confirmedAt: 'desc' },
       });
+      return meetings.map((m) => this.hideMeetLink(m));
     }
 
     if (tab === 'cancelled') {
@@ -503,7 +511,7 @@ export class MeetingsService {
           include: proposalPeopleInclude,
         }),
       ]);
-      return { meetings, proposals };
+      return { meetings: meetings.map((m) => this.hideMeetLink(m)), proposals };
     }
 
     // upcoming = confirmed-and-not-yet-happened meetings + still-pending proposals
@@ -520,7 +528,7 @@ export class MeetingsService {
       }),
     ]);
 
-    return { meetings, pendingProposals };
+    return { meetings: meetings.map((m) => this.hideMeetLink(m)), pendingProposals };
   }
 
   async getProposalForResponse(proposalId: string, userId: string) {
