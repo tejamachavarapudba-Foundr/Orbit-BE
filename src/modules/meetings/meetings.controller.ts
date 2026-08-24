@@ -66,6 +66,13 @@ export class MeetingsController {
     return this.meetings.cancelMeeting(id, userId, dto);
   }
 
+  // POST /meetings/:id/join
+  @Post(':id/join')
+  join(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user.id || req.user.sub;
+    return this.meetings.joinMeeting(id, userId);
+  }
+
   // GET /meetings/mine?tab=upcoming|completed|cancelled
   @Get('mine')
   listMine(@Query('tab') tab: 'upcoming' | 'completed' | 'cancelled' = 'upcoming', @Req() req: any) {

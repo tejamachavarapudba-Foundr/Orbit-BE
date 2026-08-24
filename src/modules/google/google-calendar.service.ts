@@ -27,7 +27,11 @@ export class GoogleCalendarService {
   async createEventWithMeet(input: CreateEventInput) {
     const accessToken = await this.oauth.getValidAccessToken(input.organizerId);
 
-    const res = await fetch(`${EVENTS_URL}?conferenceDataVersion=1`, {
+    // sendUpdates=none: Google's own invite email exposes the raw Meet link
+    // to anyone who has it, bypassing the app entirely — attendees rely on
+    // Orbit's own notifications/reminders and the in-app "Join" button
+    // instead, which is what makes the join-tracking below meaningful.
+    const res = await fetch(`${EVENTS_URL}?conferenceDataVersion=1&sendUpdates=none`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -67,7 +71,7 @@ export class GoogleCalendarService {
 
   async deleteEvent(organizerId: string, googleEventId: string) {
     const accessToken = await this.oauth.getValidAccessToken(organizerId);
-    const res = await fetch(`${EVENTS_URL}/${googleEventId}`, {
+    const res = await fetch(`${EVENTS_URL}/${googleEventId}?sendUpdates=none`, {
       method: 'DELETE',
       headers: { Authorization: `Bearer ${accessToken}` },
     });

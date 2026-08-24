@@ -426,6 +426,11 @@ export class MeetingsService {
     if (!isOrganizer && !isInvitee) throw new ForbiddenException('You are not part of this meeting');
     if (meeting.status !== 'upcoming') throw new BadRequestException('This meeting is not upcoming');
 
+    const anyoneJoined = await this.prisma.meetingJoin.findFirst({ where: { meetingId } });
+    if (anyoneJoined) {
+      throw new BadRequestException('This meeting has already started and can no longer be cancelled');
+    }
+
     await this.googleCalendar.deleteEvent(meeting.proposal.organizerId, meeting.googleEventId);
 
     const updated = await this.prisma.meeting.update({
@@ -448,13 +453,41 @@ export class MeetingsService {
     return updated;
   }
 
+  /**
+   * Records that `userId` clicked "Join Google Meet" and hands back the
+   * real link. This is the only place the app reveals `meetLink` — Google's
+   * own invite email is suppressed (sendUpdates=none) specifically so this
+   * click is a meaningful, if imperfect, join signal instead of one of
+   * several ways in.
+   */
+  async joinMeeting(meetingId: string, userId: string) {
+    const meeting = await this.prisma.meeting.findUnique({
+      where: { id: meetingId },
+      include: { proposal: { include: { invitees: true } } },
+    });
+    if (!meeting) throw new NotFoundException('Meeting not found');
+
+    const isOrganizer = meeting.proposal.organizerId === userId;
+    const isInvitee = meeting.proposal.invitees.some((item) => item.userId === userId);
+    if (!isOrganizer && !isInvitee) throw new ForbiddenException('You are not part of this meeting');
+    if (meeting.status === 'cancelled') throw new BadRequestException('This meeting was cancelled');
+
+    await this.prisma.meetingJoin.upsert({
+      where: { meetingId_userId: { meetingId, userId } },
+      update: {},
+      create: { meetingId, userId },
+    });
+
+    return { meetLink: meeting.meetLink };
+  }
+
   // ---------- My Meetings ----------
 
   async listMine(profileId: string, tab: 'upcoming' | 'completed' | 'cancelled') {
     if (tab === 'completed') {
       return this.prisma.meeting.findMany({
         where: { status: 'completed', proposal: { OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] } },
-        include: { proposal: { include: proposalPeopleInclude } },
+        include: { proposal: { include: proposalPeopleInclude }, joins: true },
         orderBy: { confirmedAt: 'desc' },
       });
     }
@@ -463,7 +496,7 @@ export class MeetingsService {
       const [meetings, proposals] = await Promise.all([
         this.prisma.meeting.findMany({
           where: { status: 'cancelled', proposal: { OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] } },
-          include: { proposal: { include: proposalPeopleInclude } },
+          include: { proposal: { include: proposalPeopleInclude }, joins: true },
         }),
         this.prisma.meetingProposal.findMany({
           where: { status: { in: ['declined', 'cancelled'] }, OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] },
@@ -477,7 +510,7 @@ export class MeetingsService {
     const [meetings, pendingProposals] = await Promise.all([
       this.prisma.meeting.findMany({
         where: { status: 'upcoming', proposal: { OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] } },
-        include: { proposal: { include: proposalPeopleInclude } },
+        include: { proposal: { include: proposalPeopleInclude }, joins: true },
         orderBy: { confirmedAt: 'asc' },
       }),
       this.prisma.meetingProposal.findMany({

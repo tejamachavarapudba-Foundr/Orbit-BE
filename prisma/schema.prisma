@@ -88,6 +88,7 @@ model Profile {
   availabilitySlots          AvailabilitySlot[]
   organizedProposals         MeetingProposal[]       @relation("ProposalOrganizer")
   proposalInvitations        ProposalInvitee[]
+  meetingJoins               MeetingJoin[]
 }
 
 model FounderProfile {
@@ -561,9 +562,22 @@ model Meeting {
   createdAt      DateTime      @default(now())
   proposal       MeetingProposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
   reminders      MeetingReminderLog[]
+  joins          MeetingJoin[]
 
   @@index([status])
   @@index([confirmedAt])
+}
+
+model MeetingJoin {
+  id        String   @id @default(uuid())
+  meetingId String
+  userId    String
+  joinedAt  DateTime @default(now())
+  meeting   Meeting  @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+  @@index([meetingId])
 }
 
 model MeetingReminderLog {
