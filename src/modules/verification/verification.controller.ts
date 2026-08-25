@@ -21,6 +21,14 @@ export class VerificationController {
     return this.verification.getStatus(req.user.id);
   }
 
+  // GET /verification/status/:profileId — public-safe subset for showing a
+  // "Verified" badge on someone else's profile (no founder document details).
+  @UseGuards(JwtAuthGuard)
+  @Get('status/:profileId')
+  getPublicStatus(@Param('profileId') profileId: string) {
+    return this.verification.getPublicStatus(profileId);
+  }
+
   // GET /verification/identity/url
   @UseGuards(JwtAuthGuard)
   @Get('identity/url')

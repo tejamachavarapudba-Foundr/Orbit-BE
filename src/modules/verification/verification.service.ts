@@ -53,6 +53,21 @@ export class VerificationService {
     };
   }
 
+  /** Same booleans as getStatus(), safe to show on anyone's public profile —
+   * unlike getStatus(), never includes the founder submission's document URL
+   * or CIN, which are only the owner's business. */
+  async getPublicStatus(profileId: string) {
+    const full = await this.getStatus(profileId);
+    return {
+      identityVerified: full.identityVerified,
+      founderVerified: full.founder?.status === 'approved',
+      investorVerified: full.investorVerified,
+      professionalVerified: full.professionalVerified,
+      advisorVerified: full.advisorVerified,
+      serviceProviderVerified: full.serviceProviderVerified,
+    };
+  }
+
   async submitFounderVerification(profileId: string, dto: SubmitFounderVerificationDto) {
     return this.prisma.founderVerification.upsert({
       where: { profileId },
