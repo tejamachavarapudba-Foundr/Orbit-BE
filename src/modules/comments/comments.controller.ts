@@ -13,7 +13,7 @@ export class CommentsController {
   }
 
   @Post()
-  create(@Body() dto: { postId: string; content: string }, @Req() req: any) {
+  create(@Body() dto: { postId: string; content: string; parentId?: string }, @Req() req: any) {
     const userId = req.user.id || req.user.sub;
     return this.svc.create(userId, dto);
   }

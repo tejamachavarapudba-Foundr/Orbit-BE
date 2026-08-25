@@ -12,22 +12,30 @@ export class CommentsService {
     });
   }
 
-  async create(userId: string, dto: { postId: string; content: string }) {
-  try {
-    return await this.prisma.postComment.create({
-      data: {
-        content: dto.content,
-        post: { connect: { id: dto.postId } },
-        author: { connect: { id: userId } },
-      },
-      include: { author: true },
-    });
-  } catch (error: any) {
-    if (error.code === 'P2025') {
-      throw new NotFoundException(`Post with ID ${dto.postId} does not exist`);
+  async create(userId: string, dto: { postId: string; content: string; parentId?: string }) {
+    if (dto.parentId) {
+      const parent = await this.prisma.postComment.findUnique({ where: { id: dto.parentId } });
+      if (!parent || parent.postId !== dto.postId) {
+        throw new NotFoundException(`Comment with ID ${dto.parentId} does not exist on this post`);
+      }
     }
-    throw error;
-  }
+
+    try {
+      return await this.prisma.postComment.create({
+        data: {
+          content: dto.content,
+          post: { connect: { id: dto.postId } },
+          author: { connect: { id: userId } },
+          ...(dto.parentId ? { parent: { connect: { id: dto.parentId } } } : {}),
+        },
+        include: { author: true },
+      });
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException(`Post with ID ${dto.postId} does not exist`);
+      }
+      throw error;
+    }
   }
 
   async remove(id: string) {
