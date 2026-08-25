@@ -191,15 +191,21 @@ export class StorageService {
   private validateDocument(
     file: Express.Multer.File,
   ) {
+    // Certification uploads are explicitly offered as "PDF or image" in the
+    // picker on both clients — this only allowing PDF was rejecting every
+    // image upload with a generic "Upload failed" toast.
     const allowed = [
       'application/pdf',
+      'image/png',
+      'image/jpeg',
+      'image/webp',
     ];
 
     if (
       !allowed.includes(file.mimetype)
     ) {
       throw new BadRequestException(
-        'Only PDF allowed.'
+        'Only PDF or image files are allowed.'
       );
     }
 
