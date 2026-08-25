@@ -20,6 +20,7 @@ export class CommentsService {
         post: { connect: { id: dto.postId } },
         author: { connect: { id: userId } },
       },
+      include: { author: true },
     });
   } catch (error: any) {
     if (error.code === 'P2025') {

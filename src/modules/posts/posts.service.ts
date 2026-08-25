@@ -21,7 +21,7 @@ export class PostsService {
         media: true,
         author: true,
         likes: true,
-        comments: true,
+        comments: { include: { author: true } },
      },
        orderBy: {
        createdAt: "desc",
@@ -67,7 +67,7 @@ export class PostsService {
             media: true,
             author: true,
             likes: true,
-            comments: true,
+            comments: { include: { author: true } },
           },
         },
       },
@@ -99,7 +99,7 @@ export class PostsService {
       media: true,
       author: true,
       likes: true,
-      comments: true,
+      comments: { include: { author: true } },
     },
   });
 
@@ -196,7 +196,7 @@ export class PostsService {
       media: true,
       author: true,
       likes: true,
-      comments: true,
+      comments: { include: { author: true } },
     },
   });
 }
@@ -215,7 +215,7 @@ export class PostsService {
           media: true,
           author: true,
           likes: true,
-          comments: true,
+          comments: { include: { author: true } },
         },
       });
     } catch (error: any) {
