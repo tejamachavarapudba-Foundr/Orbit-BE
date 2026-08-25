@@ -7,6 +7,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { MailService } from '../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { SmsService } from '../sms/sms.service';
 
 const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
 const RESET_TTL_MS = 60 * 60 * 1000;
@@ -18,6 +19,7 @@ export class AuthService {
     private jwt: JwtService,
     private mail: MailService,
     private notifications: NotificationsService,
+    private sms: SmsService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -92,6 +94,37 @@ export class AuthService {
 
     await this.mail.sendVerificationEmail(user.email, this.buildDeepLink('APP_VERIFY_EMAIL_DEEP_LINK', verificationToken));
     return genericResponse;
+  }
+
+  /** Sends (or re-sends) an OTP to `phoneNumber` and records it as this
+   * user's pending phone number — unverified until verifyPhoneOtp succeeds.
+   * Twilio Verify owns the code itself (generation, TTL, attempt limits);
+   * nothing is stored here beyond which number we're waiting to confirm. */
+  async sendPhoneOtp(userId: string, phoneNumber: string) {
+    const existing = await this.prisma.user.findUnique({ where: { phoneNumber } });
+    if (existing && existing.id !== userId) {
+      throw new ConflictException('That phone number is already in use on another account.');
+    }
+
+    await this.sms.sendOtp(phoneNumber);
+    await this.prisma.user.update({ where: { id: userId }, data: { phoneNumber, phoneVerified: false } });
+
+    return { success: true, message: 'Verification code sent.' };
+  }
+
+  async verifyPhoneOtp(userId: string, code: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user?.phoneNumber) {
+      throw new BadRequestException('Send a code to your phone number first.');
+    }
+
+    const approved = await this.sms.checkOtp(user.phoneNumber, code);
+    if (!approved) {
+      throw new BadRequestException('That code is incorrect or has expired — request a new one.');
+    }
+
+    await this.prisma.user.update({ where: { id: userId }, data: { phoneVerified: true } });
+    return { success: true, phoneVerified: true };
   }
 
   async login(dto: LoginDto) {

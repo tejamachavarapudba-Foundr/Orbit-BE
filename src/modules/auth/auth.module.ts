@@ -7,11 +7,13 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { PrismaModule } from '../../prisma/prisma.module';
 import { MailModule } from '../mail/mail.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { SmsModule } from '../sms/sms.module';
 @Module({
   imports: [
     PrismaModule,
     MailModule,
     NotificationsModule,
+    SmsModule,
     PassportModule,
     JwtModule.register({
       // FIX: Matches the fallback matrix key matching strategy signature validations

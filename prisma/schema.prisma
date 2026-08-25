@@ -23,6 +23,8 @@ model User {
   emailVerified            Boolean   @default(false)
   verificationToken        String?   @unique
   verificationTokenExpires DateTime?
+  phoneNumber              String?   @unique
+  phoneVerified            Boolean   @default(false)
   auditLogs         AuditLog[]
   connectedGoogleAccount ConnectedGoogleAccount?
   notifications     Notification[]

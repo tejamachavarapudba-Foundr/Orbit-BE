@@ -6,6 +6,8 @@ import { RefreshDto } from './dto/refresh.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
+import { SendPhoneOtpDto } from './dto/send-phone-otp.dto';
+import { VerifyPhoneOtpDto } from './dto/verify-phone-otp.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
@@ -56,5 +58,19 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   resendVerification(@Body() dto: ForgotPasswordDto) {
     return this.auth.resendVerification(dto.email);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('phone/send-otp')
+  @HttpCode(HttpStatus.OK)
+  sendPhoneOtp(@CurrentUser() u: { id: string }, @Body() dto: SendPhoneOtpDto) {
+    return this.auth.sendPhoneOtp(u.id, dto.phoneNumber);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('phone/verify-otp')
+  @HttpCode(HttpStatus.OK)
+  verifyPhoneOtp(@CurrentUser() u: { id: string }, @Body() dto: VerifyPhoneOtpDto) {
+    return this.auth.verifyPhoneOtp(u.id, dto.code);
   }
 }
