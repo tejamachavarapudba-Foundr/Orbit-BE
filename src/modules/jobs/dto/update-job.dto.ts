@@ -1,4 +1,5 @@
-import { IsArray, IsOptional, IsString } from 'class-validator';
+import { IsArray, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateJobDto {
   @IsOptional()
@@ -16,6 +17,16 @@ export class UpdateJobDto {
   @IsOptional()
   @IsString()
   experience?: string;
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  openings?: number;
 
   @IsOptional()
   @IsArray()

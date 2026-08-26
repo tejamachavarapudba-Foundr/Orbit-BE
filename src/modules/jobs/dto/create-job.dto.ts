@@ -1,8 +1,11 @@
 import {
   IsArray,
+  IsInt,
   IsOptional,
   IsString,
+  Min,
 } from "class-validator";
+import { Type } from "class-transformer";
 
 export class CreateJobDto {
   @IsString()
@@ -17,6 +20,16 @@ export class CreateJobDto {
   @IsOptional()
   @IsString()
   experience?: string;
+
+  @IsOptional()
+  @IsString()
+  location?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  openings?: number;
 
   @IsOptional()
   @IsArray()

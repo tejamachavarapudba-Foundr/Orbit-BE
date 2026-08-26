@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Job" ADD COLUMN     "location" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "openings" INTEGER NOT NULL DEFAULT 1;

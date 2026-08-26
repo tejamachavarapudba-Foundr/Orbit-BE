@@ -676,6 +676,8 @@ model Job {
   heading      String
   role         String           @default("")
   experience   String           @default("")
+  location     String           @default("")
+  openings     Int              @default(1)
   skills       String[]
   description  String           @default("")
   createdAt    DateTime         @default(now())
