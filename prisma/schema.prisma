@@ -331,6 +331,11 @@ model Message {
   conversationId String
   senderId       String
   content        String
+  attachmentUrl  String?
+  attachmentKey  String?
+  attachmentName String?
+  attachmentType String?
+  attachmentSize Int?
   readAt         DateTime?
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)

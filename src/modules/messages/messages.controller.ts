@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Req, BadRequestException } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CreateMessageDto } from './dto/create-message.dto';
 //import { Query } from '@nestjs/common';
 
 @UseGuards(JwtAuthGuard)
@@ -27,7 +28,7 @@ export class MessagesController {
 
   // POST /messages
   @Post()
-  create(@Body() dto: { conversationId: string; content: string }, @Req() req: any) {
+  create(@Body() dto: CreateMessageDto, @Req() req: any) {
     const userId = req.user.id;
     return this.svc.create(userId, dto);
   }

@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service'; // Adjust relative path based on your exact structure
+import { CreateMessageDto } from './dto/create-message.dto';
 
 @Injectable()
 export class MessagesService {
@@ -35,24 +36,33 @@ export class MessagesService {
     });
   }
 
-  async create(userId: string, dto: { conversationId: string; content: string }) {
+  async create(userId: string, dto: CreateMessageDto) {
     // 1. Double check participant ownership before allowing message inserts
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: dto.conversationId },
     });
 
     if (!conversation) throw new NotFoundException('Target conversation record not found');
-    
+
     if (conversation.userAId !== userId && conversation.userBId !== userId) {
       throw new ForbiddenException('You cannot transmit messages into a room you do not belong to');
+    }
+
+    if (!dto.content.trim() && !dto.attachmentUrl) {
+      throw new BadRequestException('A message needs text or an attachment.');
     }
 
     // 2. Save the message to the database
     const newMessage = await this.prisma.message.create({
       data: {
         content: dto.content,
+        attachmentUrl: dto.attachmentUrl,
+        attachmentKey: dto.attachmentKey,
+        attachmentName: dto.attachmentName,
+        attachmentType: dto.attachmentType,
+        attachmentSize: dto.attachmentSize,
         conversation: { connect: { id: dto.conversationId } },
-        sender: { connect: { id: userId } }, 
+        sender: { connect: { id: userId } },
       },
     });
 
@@ -61,11 +71,15 @@ export class MessagesService {
 
     // 4. Trigger Scenario A Hook: Send the app notification alert safely
     try {
+      const preview = dto.content.trim()
+        ? `"${dto.content.substring(0, 30)}${dto.content.length > 30 ? '...' : ''}"`
+        : `an attachment: ${dto.attachmentName ?? 'file'}`;
+
       await this.notificationsService.createNotification(
         recipientId,
         'NEW_MESSAGE' as any, // Casts cleanly to your Prisma enum definition type
         'New Chat Message',
-        `You have received a new message: "${dto.content.substring(0, 30)}${dto.content.length > 30 ? '...' : ''}"`
+        `You have received a new message: ${preview}`
       );
     } catch (notificationError) {
       // Log the error internally but don't crash the API response if notification saving fails
