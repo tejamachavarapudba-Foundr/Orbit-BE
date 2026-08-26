@@ -6,22 +6,19 @@ export class ChatsService {
   constructor(private prisma: PrismaService) {}
 
     // 1. Fetch all chats where the user is either userA OR userB
-  async list(userId: string) {
+  async list(userId: string, archived = false) {
     // HARD BOUNDARY: Block query execution if userId is falsy or blank
     if (!userId || typeof userId !== 'string') {
       throw new ForbiddenException('Database access denied: Invalid identification signature');
     }
 
-    return this.prisma.conversation.findMany({
+    const chats = await this.prisma.conversation.findMany({
       where: {
-        AND: [
-          // Forces database engines to completely drop matching if criteria isn't met
-          {
-            OR: [
-              { userAId: userId },
-              { userBId: userId }
-            ]
-          }
+        // Archiving is per-user (either side can archive independently),
+        // so which flag applies depends on which side this user is on.
+        OR: [
+          { userAId: userId, archivedByUserA: archived },
+          { userBId: userId, archivedByUserB: archived }
         ]
       },
       include: {
@@ -31,6 +28,28 @@ export class ChatsService {
         }
       }
     });
+
+    return chats.map((chat) => this.withArchivedFlag(chat, userId));
+  }
+
+  private withArchivedFlag<T extends { userAId: string; archivedByUserA: boolean; archivedByUserB: boolean }>(
+    chat: T,
+    userId: string,
+  ) {
+    return { ...chat, archived: chat.userAId === userId ? chat.archivedByUserA : chat.archivedByUserB };
+  }
+
+  // 5. Archive or unarchive a chat for the requesting user only
+  async setArchived(id: string, userId: string, archived: boolean) {
+    const chat = await this.findOne(id, userId);
+    const isUserA = chat.userAId === userId;
+
+    const updated = await this.prisma.conversation.update({
+      where: { id },
+      data: isUserA ? { archivedByUserA: archived } : { archivedByUserB: archived }
+    });
+
+    return this.withArchivedFlag(updated, userId);
   }
 
 
@@ -48,13 +67,13 @@ export class ChatsService {
     });
 
     if (!chat) throw new NotFoundException(`Chat entry with ID ${id} not found`);
-    
+
     // Check fields against your schema columns
     if (chat.userAId !== userId && chat.userBId !== userId) {
       throw new ForbiddenException('You are not a participant in this chat');
     }
 
-    return chat;
+    return this.withArchivedFlag(chat, userId);
   }
 
 
@@ -93,16 +112,18 @@ export class ChatsService {
       }
     });
 
-    if (existingChat) return existingChat;
+    if (existingChat) return this.withArchivedFlag(existingChat, userId);
 
     // Create the room using direct field assignments
-    return this.prisma.conversation.create({
+    const created = await this.prisma.conversation.create({
       data: {
         userAId: userId,
         userBId: participantId,
         lastMessageAt: new Date()
       }
     });
+
+    return this.withArchivedFlag(created, userId);
   }
 
   // 4. Delete a chat channel safely

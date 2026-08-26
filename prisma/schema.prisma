@@ -314,14 +314,16 @@ model ProjectMember {
 }
 
 model Conversation {
-  id            String    @id @default(uuid())
-  userAId       String
-  userBId       String
-  lastMessageAt DateTime  @default(now())
-  createdAt     DateTime  @default(now())
-  userA         Profile   @relation("UserA", fields: [userAId], references: [id], onDelete: Cascade)
-  userB         Profile   @relation("UserB", fields: [userBId], references: [id], onDelete: Cascade)
-  messages      Message[]
+  id              String    @id @default(uuid())
+  userAId         String
+  userBId         String
+  lastMessageAt   DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  archivedByUserA Boolean   @default(false)
+  archivedByUserB Boolean   @default(false)
+  userA           Profile   @relation("UserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB           Profile   @relation("UserB", fields: [userBId], references: [id], onDelete: Cascade)
+  messages        Message[]
 
   @@unique([userAId, userBId])
 }
