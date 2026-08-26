@@ -108,11 +108,18 @@ if (!allowedRoles.includes(profile.role)) {
 
   // 5. DELETE A VACANCY
   async removeJob(id: string, userId: string) {
-    const job = await this.prisma.job.findUnique({ where: { id } });
+    const job = await this.prisma.job.findUnique({
+      where: { id },
+      include: { applications: true },
+    });
     if (!job) throw new NotFoundException('Job listing not found');
 
     if (job.posterId !== userId) {
       throw new ForbiddenException('You do not have permission to delete this job post.');
+    }
+
+    if (job.applications.length > 0) {
+      throw new ConflictException('This job post already has applications and can no longer be deleted.');
     }
 
     await this.prisma.job.delete({ where: { id } });
