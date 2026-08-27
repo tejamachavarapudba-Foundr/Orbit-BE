@@ -16,14 +16,21 @@ export class EventsService {
         OR: [{ isPrivate: false }, { hostId: userId }, { invites: { some: { userId } } }],
       },
       include: {
-        _count: { select: { attendees: true } }
-      }, // <-- Check to make sure this brace is closed properly
-      orderBy: { startsAt: 'asc' },
+        _count: { select: { attendees: true } },
+        host: { select: { id: true, fullName: true, avatarUrl: true } },
+      },
+      orderBy: { createdAt: 'desc' },
     });
   }
 
   async get(id: string, userId?: string) {
-    const event = await this.prisma.event.findUnique({ where: { id } });
+    const event = await this.prisma.event.findUnique({
+      where: { id },
+      include: {
+        _count: { select: { attendees: true } },
+        host: { select: { id: true, fullName: true, avatarUrl: true } },
+      },
+    });
     if (!event) throw new NotFoundException(`Event with ID "${id}" not found`);
     if (userId) await this.assertVisible(event, userId);
     return event;
@@ -51,6 +58,10 @@ export class EventsService {
         hostId: hostId,
         isPrivate: dto.isPrivate ?? false,
         communityId: dto.communityId ?? null,
+      },
+      include: {
+        _count: { select: { attendees: true } },
+        host: { select: { id: true, fullName: true, avatarUrl: true } },
       },
     });
 
