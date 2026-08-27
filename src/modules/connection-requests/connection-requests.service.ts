@@ -81,10 +81,16 @@ export class ConnectionRequestsService {
   }
 
   async getIncoming(profileId: string) {
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+
     return this.prisma.connectionRequest.findMany({
       where: {
         recipientId: profileId,
         status: 'pending',
+        // An ignored request expires after 30 days too, same as a
+        // declined one does for the sender — it shouldn't keep demanding
+        // a response indefinitely.
+        updatedAt: { gte: new Date(Date.now() - THIRTY_DAYS_MS) },
       },
       select: {
         id: true,
@@ -313,14 +319,34 @@ export class ConnectionRequestsService {
       },
     });
 
-    if (pendingRequest && pendingRequest.status === 'pending') {
-      return {
-        status: pendingRequest.requesterId === currentUserId ? 'outgoing_pending' : 'incoming_pending',
-        requestId: pendingRequest.id,
-      };
+    if (pendingRequest) {
+      const isSender = pendingRequest.requesterId === currentUserId;
+      const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+      // updatedAt, not createdAt: a re-sent request reuses the same row
+      // (see createRequest's flip-to-pending path) and updatedAt is what
+      // reflects when the current pending window actually started.
+      const withinWindow = Date.now() - pendingRequest.updatedAt.getTime() <= THIRTY_DAYS_MS;
+
+      if (pendingRequest.status === 'pending' && withinWindow) {
+        return {
+          status: isSender ? 'outgoing_pending' : 'incoming_pending',
+          requestId: pendingRequest.id,
+        };
+      }
+
+      // A decline is only masked as "still pending" for the sender — they
+      // can't immediately re-request or tell they were declined, matching
+      // the existing note on declineRequest. The recipient who declined it
+      // already sees it drop out of their own incoming list (getIncoming
+      // filters to status 'pending'), so it's fine to fall through to
+      // 'none' for them here.
+      if (pendingRequest.status === 'declined' && isSender && withinWindow) {
+        return { status: 'outgoing_pending', requestId: pendingRequest.id };
+      }
     }
 
-    // If declined, cancelled, or no history exists, display Connect option
+    // Expired (30+ days), cancelled, accepted-elsewhere, or no history —
+    // display the Connect option again.
     return { status: 'none' };
   }
 
