@@ -52,19 +52,27 @@ export class MessagesService {
       throw new BadRequestException('A message needs text or an attachment.');
     }
 
-    // 2. Save the message to the database
-    const newMessage = await this.prisma.message.create({
-      data: {
-        content: dto.content,
-        attachmentUrl: dto.attachmentUrl,
-        attachmentKey: dto.attachmentKey,
-        attachmentName: dto.attachmentName,
-        attachmentType: dto.attachmentType,
-        attachmentSize: dto.attachmentSize,
-        conversation: { connect: { id: dto.conversationId } },
-        sender: { connect: { id: userId } },
-      },
-    });
+    // 2. Save the message to the database, and bump the conversation's
+    // lastMessageAt so chat list ordering/relative-time reflects this
+    // message instead of staying frozen at whenever the room was created.
+    const [newMessage] = await this.prisma.$transaction([
+      this.prisma.message.create({
+        data: {
+          content: dto.content,
+          attachmentUrl: dto.attachmentUrl,
+          attachmentKey: dto.attachmentKey,
+          attachmentName: dto.attachmentName,
+          attachmentType: dto.attachmentType,
+          attachmentSize: dto.attachmentSize,
+          conversation: { connect: { id: dto.conversationId } },
+          sender: { connect: { id: userId } },
+        },
+      }),
+      this.prisma.conversation.update({
+        where: { id: dto.conversationId },
+        data: { lastMessageAt: new Date() },
+      }),
+    ]);
 
     // 3. Determine who should receive the notification (the other participant)
     const recipientId = conversation.userAId === userId ? conversation.userBId : conversation.userAId;
