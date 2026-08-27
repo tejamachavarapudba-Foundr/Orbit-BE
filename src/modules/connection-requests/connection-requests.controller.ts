@@ -2,10 +2,11 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Post,
-  UseGuards, 
+  UseGuards,
 } from '@nestjs/common';
 
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -99,10 +100,18 @@ export class ConnectionRequestsController {
   }
 
   // URL: GET /api/connection/:userId
+  // Only the count is meant to be visible for other users (shown publicly
+  // on Discover cards) — the actual list of who someone is connected to
+  // is only ever fetched by the app for the logged-in user's own id, so
+  // that's the only case this should allow.
   @Get(':userId')
   getConnected(
+    @CurrentUser() user: { id: string },
     @Param('userId') userId: string,
   ) {
+    if (userId !== user.id) {
+      throw new ForbiddenException("You can only view your own connections list");
+    }
     return this.service.getConnectedProfiles(userId);
   }
 
