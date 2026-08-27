@@ -19,6 +19,7 @@ export class EventsService {
       include: {
         _count: { select: { attendees: true } },
         host: { select: { id: true, fullName: true, avatarUrl: true } },
+        attendees: { where: { userId }, select: { id: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -40,6 +41,7 @@ export class EventsService {
       include: {
         _count: { select: { attendees: true } },
         host: { select: { id: true, fullName: true, avatarUrl: true } },
+        attendees: { where: { userId }, select: { id: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -51,6 +53,7 @@ export class EventsService {
       include: {
         _count: { select: { attendees: true } },
         host: { select: { id: true, fullName: true, avatarUrl: true } },
+        attendees: userId ? { where: { userId }, select: { id: true } } : false,
       },
     });
     if (!event) throw new NotFoundException(`Event with ID "${id}" not found`);
@@ -103,6 +106,15 @@ export class EventsService {
           data: Array.from(inviteeIds).map((userId) => ({ eventId: event.id, userId })),
           skipDuplicates: true,
         });
+
+        // Community members are already "in" by being in the community —
+        // there's no separate join step for them, only a leave/un-RSVP one.
+        if (dto.communityId) {
+          await this.prisma.eventAttendee.createMany({
+            data: Array.from(inviteeIds).map((userId) => ({ eventId: event.id, userId })),
+            skipDuplicates: true,
+          });
+        }
       }
     }
 

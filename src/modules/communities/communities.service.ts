@@ -48,7 +48,7 @@ export class CommunitiesService {
   async get(id: string, userId: string) {
     const community = await this.prisma.community.findUnique({
       where: { id },
-      include: { members: memberSelect },
+      include: { members: memberSelect, _count: { select: { members: true } } },
     });
     if (!community) throw new NotFoundException('Community not found');
 
