@@ -8,12 +8,34 @@ import { EventStatus } from '@prisma/client'; // 🆕 Import the new enum
 export class EventsService {
   constructor(private prisma: PrismaService) {}
 
-   // Show every public event, plus private ones this user hosts or was invited to
-    async list(userId: string) {
+  // Public feed only — private community events live in the community's own
+  // event list (listForCommunity) instead of showing up here too.
+  async list(userId: string) {
     return this.prisma.event.findMany({
       where: {
         status: EventStatus.ACTIVE,
-        OR: [{ isPrivate: false }, { hostId: userId }, { invites: { some: { userId } } }],
+        isPrivate: false,
+      },
+      include: {
+        _count: { select: { attendees: true } },
+        host: { select: { id: true, fullName: true, avatarUrl: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async listForCommunity(communityId: string, userId: string) {
+    const membership = await this.prisma.communityMember.findUnique({
+      where: { communityId_userId: { communityId, userId } },
+    });
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this community.');
+    }
+
+    return this.prisma.event.findMany({
+      where: {
+        status: EventStatus.ACTIVE,
+        communityId,
       },
       include: {
         _count: { select: { attendees: true } },

@@ -16,6 +16,12 @@ export class EventsController {
     return this.svc.list(req.user.id);
   }
 
+  // Declared before ':id' so "community" isn't swallowed as an :id value.
+  @Get('community/:communityId')
+  listForCommunity(@Param('communityId') communityId: string, @Request() req: any) {
+    return this.svc.listForCommunity(communityId, req.user.id);
+  }
+
   @Get(':id')
   get(@Param('id') id: string, @Request() req: any) {
     return this.svc.get(id, req.user.id);
