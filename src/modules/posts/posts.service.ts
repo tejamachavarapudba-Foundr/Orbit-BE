@@ -202,7 +202,17 @@ export class PostsService {
 }
   
   
-  async update(id: string, dto: UpdatePostDto) {
+  async update(id: string, userId: string, dto: UpdatePostDto) {
+    const post = await this.prisma.post.findUnique({ where: { id } });
+
+    if (!post) {
+      throw new NotFoundException(`Post with ID "${id}" does not exist.`);
+    }
+
+    if (post.authorId !== userId) {
+      throw new ForbiddenException('You are not authorized to edit this post.');
+    }
+
     try {
       return await this.prisma.post.update({
         where: { id },

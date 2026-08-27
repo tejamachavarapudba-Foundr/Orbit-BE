@@ -16,29 +16,40 @@ export class JobsService {
   ) {}
 
   // 1. GET ALL VACANCIES
-  async list() {
-    return this.prisma.job.findMany({
+  // Public browse endpoint — must never leak other applicants' application
+  // data (resumes, cover letters, salary expectations, full profiles).
+  // Each job's `applications` here is scoped to just the caller's own
+  // entry (0 or 1) so the frontend's "did I already apply" check keeps
+  // working; `applicationsCount` carries the real total safely. Anyone who
+  // actually needs the full applicant list is the poster, who gets it via
+  // the separately-gated myPosts()/myAnalytics() below.
+  async list(userId: string) {
+    const jobs = await this.prisma.job.findMany({
       include: {
-        poster: true,
-        applications: true,
+        poster: { select: { id: true, fullName: true, headline: true, avatarUrl: true, role: true } },
+        _count: { select: { applications: true } },
+        applications: { where: { applicantId: userId } },
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    return jobs.map(({ _count, ...job }) => ({ ...job, applicationsCount: _count.applications }));
   }
 
   // 2. GET SINGLE JOB DETAILS
-  async findOne(id: string) {
+  // Same scoping as list() — see comment above.
+  async findOne(id: string, userId: string) {
     const job = await this.prisma.job.findUnique({
       where: { id },
       include: {
-        poster: true,
-        applications: {
-          include: { applicant: true },
-        },
+        poster: { select: { id: true, fullName: true, headline: true, avatarUrl: true, role: true } },
+        _count: { select: { applications: true } },
+        applications: { where: { applicantId: userId } },
       },
     });
     if (!job) throw new NotFoundException(`Job listing with ID ${id} not found`);
-    return job;
+    const { _count, ...rest } = job;
+    return { ...rest, applicationsCount: _count.applications };
   }
 
   // 3. POST A NEW VACANCY

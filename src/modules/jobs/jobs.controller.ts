@@ -12,8 +12,9 @@ export class JobsController {
 
   // GET /jobs
   @Get()
-  list() {
-    return this.svc.list();
+  list(@Req() req: any) {
+    const userId = req.user.id || req.user.sub;
+    return this.svc.list(userId);
   }
 
   // GET /jobs/mine/applications
@@ -39,8 +40,9 @@ export class JobsController {
 
   // GET /jobs/:id
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user.id || req.user.sub;
+    return this.svc.findOne(id, userId);
   }
 
   // POST /jobs

@@ -2,7 +2,6 @@ import {
   BadRequestException,
   Body,
   Controller,
-  Delete,
   Post,
   UploadedFile,
   UseGuards,
@@ -17,7 +16,6 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { StorageService } from './storage.service';
 
 import { UploadFileDto } from './dto/upload-file.dto';
-import { DeleteFileDto } from './dto/delete-file.dto';
 
 @Controller('storage')
 @UseGuards(JwtAuthGuard)
@@ -51,17 +49,6 @@ export class StorageController {
     return this.storageService.upload(
       file,
       dto.type,
-    );
-  }
-
-  @Delete('delete')
-  async delete(
-    @Body()
-    dto: DeleteFileDto,
-  ) {
-    return this.storageService.delete(
-      dto.type,
-      dto.path,
     );
   }
 }

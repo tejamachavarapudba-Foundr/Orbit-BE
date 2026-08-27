@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, ForbiddenException, Get, Post, Delete, Param, Req, UseGuards } from '@nestjs/common';
 import { FollowsService } from './follows.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
@@ -8,14 +8,23 @@ export class FollowsController {
   constructor(private readonly svc: FollowsService) {}
 
   // 1. GET /follows/followers/:userId
+  // Only the count is public (see getCounts below, shown on Discover cards
+  // for anyone) — the full list is only ever fetched by the app for the
+  // logged-in user's own id, so that's the only case allowed here.
   @Get('followers/:userId')
-  getFollowers(@Param('userId') userId: string) {
+  getFollowers(@Req() req: any, @Param('userId') userId: string) {
+    if (userId !== req.user.id) {
+      throw new ForbiddenException("You can only view your own followers list");
+    }
     return this.svc.getFollowers(userId);
   }
 
   // 2. GET /follows/following/:userId
   @Get('following/:userId')
-  getFollowing(@Param('userId') userId: string) {
+  getFollowing(@Req() req: any, @Param('userId') userId: string) {
+    if (userId !== req.user.id) {
+      throw new ForbiddenException("You can only view your own following list");
+    }
     return this.svc.getFollowing(userId);
   }
 

@@ -89,8 +89,9 @@ export class ProjectsController {
 
   // GET /projects/:id/applications (View all incoming applications)
   @Get(':id/applications')
-  async getApplications(@Param('id') id: string, @Query('role') role?: MemberRole) {
-    return await this.svc.getApplicationsByRole(id, role);
+  async getApplications(@Param('id') id: string, @Query('role') role: MemberRole | undefined, @Req() req: any) {
+    const userId = req.user.id || req.user.sub;
+    return await this.svc.getApplicationsByRole(id, userId, role);
   }
 
     // PATCH /projects/:id/applications/:appId (Approve or Reject an applicant)

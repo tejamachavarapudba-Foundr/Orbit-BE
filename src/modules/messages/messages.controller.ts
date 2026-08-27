@@ -35,14 +35,14 @@ export class MessagesController {
 
   // PATCH /messages/:id/read
   @Patch(':id/read')
-  updateStatus(@Param('id') id: string) {
-    return this.svc.updateStatus(id);
+  updateStatus(@Param('id') id: string, @Req() req: any) {
+    return this.svc.updateStatus(id, req.user.id);
   }
 
   // DELETE /messages/:id
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.svc.remove(id);
+  remove(@Param('id') id: string, @Req() req: any) {
+    return this.svc.remove(id, req.user.id);
   }
   @Get(':conversationId/search')
   searchMessages(

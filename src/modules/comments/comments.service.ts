@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 @Injectable()
@@ -38,7 +38,17 @@ export class CommentsService {
     }
   }
 
-  async remove(id: string) {
+  async remove(id: string, userId: string) {
+    const comment = await this.prisma.postComment.findUnique({ where: { id } });
+
+    if (!comment) {
+      throw new NotFoundException(`Comment with ID ${id} not found`);
+    }
+
+    if (comment.authorId !== userId) {
+      throw new ForbiddenException('You can only delete your own comments');
+    }
+
     try {
       return await this.prisma.postComment.delete({ // Changed to postComment
         where: { id },

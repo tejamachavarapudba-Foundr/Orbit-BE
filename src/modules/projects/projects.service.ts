@@ -261,7 +261,15 @@ export class ProjectsService {
     });
   }
 
-  async getApplicationsByRole(projectId: string, role?: MemberRole) {
+  async getApplicationsByRole(projectId: string, userId: string, role?: MemberRole) {
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+    if (!project) throw new NotFoundException('Project reference not found');
+
+    // SECURITY CHECK: Only the project owner can view who applied
+    if (project.ownerId !== userId) {
+      throw new ForbiddenException("Permission denied: You cannot view applications for a project you don't own");
+    }
+
     const directPartners = await this.prisma.projectApplication.findMany({
       where: {
         projectId: projectId,

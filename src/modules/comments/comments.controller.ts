@@ -19,7 +19,8 @@ export class CommentsController {
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.svc.remove(id);
+  remove(@Param('id') id: string, @Req() req: any) {
+    const userId = req.user.id || req.user.sub;
+    return this.svc.remove(id, userId);
   }
 }

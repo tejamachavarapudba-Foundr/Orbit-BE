@@ -5,12 +5,22 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class FollowsService {
   constructor(private prisma: PrismaService) {}
 
+  // Display-safe subset only — this used to include the full Profile row
+  // (resumeKey, bio, onboarding internals, etc.) for anyone who could guess
+  // a userId. Matches ConnectionRequestsService.getConnectedProfiles.
+  private readonly profileCard = {
+    id: true,
+    fullName: true,
+    headline: true,
+    avatarUrl: true,
+  } as const;
+
   // 1. Find profiles following this user
   async getFollowers(profileId: string) {
     const connections = await this.prisma.connection.findMany({
       where: { followingId: profileId },
       include: {
-        follower: true, // Returns the full Profile model
+        follower: { select: this.profileCard },
       },
     });
     return connections.map((c) => c.follower);
@@ -21,7 +31,7 @@ export class FollowsService {
     const connections = await this.prisma.connection.findMany({
       where: { followerId: profileId },
       include: {
-        following: true, // Returns the full Profile model
+        following: { select: this.profileCard },
       },
     });
     return connections.map((c) => c.following);

@@ -89,33 +89,42 @@ export class MessagesService {
     return newMessage;
   }
 
-  async updateStatus(id: string) {
-    try {
-      return await this.prisma.message.update({
-        where: { id },
-        data: { 
-          readAt: new Date() 
-        }, 
-      });
-    } catch (error) {
-      if (error.code === 'P2025') {
-        throw new NotFoundException(`Message entry with ID ${id} not found`);
-      }
-      throw error;
+  async updateStatus(id: string, userId: string) {
+    const message = await this.prisma.message.findUnique({
+      where: { id },
+      include: { conversation: true },
+    });
+
+    if (!message) {
+      throw new NotFoundException(`Message entry with ID ${id} not found`);
     }
+
+    if (message.conversation.userAId !== userId && message.conversation.userBId !== userId) {
+      throw new ForbiddenException('You are not a participant in this conversation');
+    }
+
+    return this.prisma.message.update({
+      where: { id },
+      data: {
+        readAt: new Date()
+      },
+    });
   }
 
-  async remove(id: string) {
-    try {
-      return await this.prisma.message.delete({
-        where: { id },
-      });
-    } catch (error) {
-      if (error.code === 'P2025') {
-        throw new NotFoundException(`Message entry with ID ${id} does not exist`);
-      }
-      throw error;
+  async remove(id: string, userId: string) {
+    const message = await this.prisma.message.findUnique({ where: { id } });
+
+    if (!message) {
+      throw new NotFoundException(`Message entry with ID ${id} does not exist`);
     }
+
+    if (message.senderId !== userId) {
+      throw new ForbiddenException('You can only delete your own messages');
+    }
+
+    return this.prisma.message.delete({
+      where: { id },
+    });
   }
   async searchMessages(
     conversationId: string,
