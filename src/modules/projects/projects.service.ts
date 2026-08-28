@@ -19,7 +19,7 @@ export class ProjectsService {
       include: {
         investorSnapshot: true,
         owner: { select: { founderVerification: { select: { status: true } } } },
-        _count: { select: { likedBy: true } },
+        _count: { select: { likedBy: true, members: true } },
         likedBy: userId ? { where: { userId }, select: { id: true } } : false,
         viewedBy: userId ? { where: { userId }, select: { id: true } } : false,
       },
@@ -30,6 +30,10 @@ export class ProjectsService {
       founderVerified: project.owner?.founderVerification?.status === 'approved',
       owner: undefined,
       likeCount: project._count?.likedBy ?? 0,
+      // Real roster count, not the self-reported teamSize field — those two
+      // used to disagree (card said "Team 1" from teamSize's default while
+      // the detail screen's actual member list showed 0).
+      teamMemberCount: project._count?.members ?? 0,
       isLikedByMe: Boolean(project.likedBy?.length),
       isViewedByMe: Boolean(project.viewedBy?.length),
       _count: undefined,
