@@ -554,4 +554,34 @@ export class ProjectsService {
   });
   }
 
+  async updateCover(projectId: string, userId: string, file: Express.Multer.File) {
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.ownerId !== userId) {
+      throw new ForbiddenException('Permission denied.');
+    }
+
+    const upload = await this.storageService.upload(file, StorageType.PROJECT, project.id);
+
+    if (project.coverUrl) {
+      try {
+        const oldPath = this.storageService.extractPathFromUrl(project.coverUrl);
+        if (oldPath) {
+          await this.storageService.delete(StorageType.PROJECT, oldPath);
+        }
+      } catch (error) {
+        console.warn('Failed to delete previous project cover', error);
+      }
+    }
+
+    return this.prisma.project.update({
+      where: { id: project.id },
+      data: { coverUrl: upload.url },
+    });
+  }
+
 }
