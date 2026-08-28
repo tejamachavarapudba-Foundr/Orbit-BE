@@ -30,6 +30,8 @@ model User {
   notifications     Notification[]
   profile           Profile?
   savedStartups     SavedStartup[]
+  likedStartups     StartupLike[]
+  viewedStartups    StartupView[]
 }
 
 model Profile {
@@ -254,6 +256,8 @@ model Project {
   members          ProjectMember[]
   reviews          ProjectReview[]
   savedBy          SavedStartup[]
+  likedBy          StartupLike[]
+  viewedBy         StartupView[]
 
   @@index([ownerId])
   @@index([stage])
@@ -266,6 +270,28 @@ model SavedStartup {
   userId    String
   projectId String
   createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+model StartupLike {
+  id        String   @id @default(uuid())
+  userId    String
+  projectId String
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+model StartupView {
+  id        String   @id @default(uuid())
+  userId    String
+  projectId String
+  viewedAt  DateTime @default(now())
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

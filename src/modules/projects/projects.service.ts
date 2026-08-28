@@ -14,11 +14,14 @@ export class ProjectsService {
     private readonly storageService: StorageService,
   ) {}
 
-  async list() {
+  async list(userId?: string) {
     const projects = await this.prisma.project.findMany({
       include: {
         investorSnapshot: true,
         owner: { select: { founderVerification: { select: { status: true } } } },
+        _count: { select: { likedBy: true } },
+        likedBy: userId ? { where: { userId }, select: { id: true } } : false,
+        viewedBy: userId ? { where: { userId }, select: { id: true } } : false,
       },
     });
 
@@ -26,7 +29,36 @@ export class ProjectsService {
       ...project,
       founderVerified: project.owner?.founderVerification?.status === 'approved',
       owner: undefined,
+      likeCount: project._count?.likedBy ?? 0,
+      isLikedByMe: Boolean(project.likedBy?.length),
+      isViewedByMe: Boolean(project.viewedBy?.length),
+      _count: undefined,
+      likedBy: undefined,
+      viewedBy: undefined,
     }));
+  }
+
+  async toggleLike(userId: string, projectId: string) {
+    const existing = await this.prisma.startupLike.findUnique({
+      where: { userId_projectId: { userId, projectId } },
+    });
+
+    if (existing) {
+      await this.prisma.startupLike.delete({ where: { id: existing.id } });
+      return { liked: false };
+    }
+
+    await this.prisma.startupLike.create({ data: { userId, projectId } });
+    return { liked: true };
+  }
+
+  async markViewed(userId: string, projectId: string) {
+    await this.prisma.startupView.upsert({
+      where: { userId_projectId: { userId, projectId } },
+      update: {},
+      create: { userId, projectId },
+    });
+    return { viewed: true };
   }
 
   async create(userId: string, dto: any) {
