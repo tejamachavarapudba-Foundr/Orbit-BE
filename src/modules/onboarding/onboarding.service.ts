@@ -96,6 +96,7 @@ export class OnboardingService {
           website: roleData.website ?? '',
           founderStatus: roleData.founderStatus ?? '',
           currentRole: roleData.currentRole ?? '',
+          currentRoleOther: roleData.currentRoleOther ?? '',
           portfolio: roleData.portfolio ?? [],
           goals,
         };
@@ -114,6 +115,7 @@ export class OnboardingService {
           geography: roleData.geography ?? '',
           portfolio: roleData.portfolio ?? [],
           investorType: roleData.investorType ?? '',
+          investorTypeOther: roleData.investorTypeOther ?? '',
           investingAs: roleData.investingAs ?? '',
           investmentStage: roleData.investmentStage ?? [],
           yearsInvestingExperience: roleData.yearsInvestingExperience ?? '',

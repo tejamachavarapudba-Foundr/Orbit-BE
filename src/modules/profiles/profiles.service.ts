@@ -106,6 +106,7 @@ export class ProfilesService {
             website: roleProfile.data?.website ?? '',
             founderStatus: roleProfile.data?.founderStatus ?? '',
             currentRole: roleProfile.data?.currentRole ?? '',
+            currentRoleOther: roleProfile.data?.currentRoleOther ?? '',
             portfolio: roleProfile.data?.portfolio ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
@@ -121,6 +122,7 @@ export class ProfilesService {
             website: roleProfile.data?.website ?? '',
             founderStatus: roleProfile.data?.founderStatus ?? '',
             currentRole: roleProfile.data?.currentRole ?? '',
+            currentRoleOther: roleProfile.data?.currentRoleOther ?? '',
             portfolio: roleProfile.data?.portfolio ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
@@ -148,6 +150,8 @@ export class ProfilesService {
               roleProfile.data?.portfolio ?? [],
             investorType:
               roleProfile.data?.investorType ?? '',
+            investorTypeOther:
+              roleProfile.data?.investorTypeOther ?? '',
             investingAs:
               roleProfile.data?.investingAs ?? '',
             investmentStage:
@@ -171,6 +175,8 @@ export class ProfilesService {
               roleProfile.data?.portfolio ?? [],
             investorType:
               roleProfile.data?.investorType ?? '',
+            investorTypeOther:
+              roleProfile.data?.investorTypeOther ?? '',
             investingAs:
               roleProfile.data?.investingAs ?? '',
             investmentStage:

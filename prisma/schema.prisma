@@ -111,6 +111,7 @@ model FounderProfile {
   website       String   @default("")
   founderStatus String   @default("")
   currentRole   String   @default("")
+  currentRoleOther String @default("")
   portfolio     String[]
   goals         String[]
   createdAt     DateTime @default(now())
@@ -126,6 +127,7 @@ model InvestorProfile {
   geography                String   @default("")
   portfolio                String[]
   investorType             String   @default("")
+  investorTypeOther        String   @default("")
   investingAs              String   @default("")
   investmentStage          String[]
   yearsInvestingExperience String   @default("")
