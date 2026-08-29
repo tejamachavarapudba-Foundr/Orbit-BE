@@ -119,6 +119,33 @@ export class MessagesService {
     });
   }
 
+  // Marks every unread message in a conversation as read in one query,
+  // instead of the caller firing updateStatus() once per unread message
+  // (each of which was its own findUnique + update — opening a chat with
+  // 15 unread messages meant 30 sequential round trips).
+  async markConversationRead(conversationId: string, userId: string) {
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: conversationId },
+    });
+
+    if (!conversation) {
+      throw new NotFoundException('The requested conversation room does not exist');
+    }
+
+    if (conversation.userAId !== userId && conversation.userBId !== userId) {
+      throw new ForbiddenException('Access Denied: You are not a participant in this conversation');
+    }
+
+    return this.prisma.message.updateMany({
+      where: {
+        conversationId,
+        senderId: { not: userId },
+        readAt: null,
+      },
+      data: { readAt: new Date() },
+    });
+  }
+
   async remove(id: string, userId: string) {
     const message = await this.prisma.message.findUnique({ where: { id } });
 

@@ -39,6 +39,12 @@ export class MessagesController {
     return this.svc.updateStatus(id, req.user.id);
   }
 
+  // PATCH /messages/conversation/:conversationId/read
+  @Patch('conversation/:conversationId/read')
+  markConversationRead(@Param('conversationId') conversationId: string, @Req() req: any) {
+    return this.svc.markConversationRead(conversationId, req.user.id);
+  }
+
   // DELETE /messages/:id
   @Delete(':id')
   remove(@Param('id') id: string, @Req() req: any) {
