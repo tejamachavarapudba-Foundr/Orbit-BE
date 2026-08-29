@@ -14,7 +14,7 @@ export class PostsService {
     private readonly storageService: StorageService,
   ) {}
 
-  async list(userId?: string) {
+  async list(userId?: string, page = 1, limit = 10) {
     return this.prisma.post.findMany({
       where: userId ? { notInterestedBy: { none: { userId } } } : undefined,
       include: {
@@ -26,6 +26,8 @@ export class PostsService {
        orderBy: {
        createdAt: "desc",
       },
+      skip: (page - 1) * limit,
+      take: limit,
     });
   }
 

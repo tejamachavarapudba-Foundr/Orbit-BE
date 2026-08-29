@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { PostsService } from './posts.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreatePostDto } from './dto/create-post.dto';
@@ -12,10 +12,14 @@ import { memoryStorage } from 'multer';
 export class PostsController {
   constructor(private svc: PostsService) {}
 
+  // Defaults to 50 (not the mobile app's page size of 10) since callers
+  // that don't pass page/limit at all — the web app's feed and profile
+  // pages — have no "load more" UI and would otherwise be cut down to
+  // whatever the default page size is with no way to see older posts.
   @Get()
-  list(@Req() req: any) {
+  list(@Req() req: any, @Query('page') page?: string, @Query('limit') limit?: string) {
     const userId = req.user.id || req.user.sub;
-    return this.svc.list(userId);
+    return this.svc.list(userId, Number(page) || 1, Number(limit) || 50);
   }
 
   @Get('saved')
