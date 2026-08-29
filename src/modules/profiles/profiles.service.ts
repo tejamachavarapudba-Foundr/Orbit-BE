@@ -39,6 +39,8 @@ export class ProfilesService {
         professionalProfile: true,
         serviceProviderProfile: true,
       },
+      take: 200,
+      relationLoadStrategy: 'join',
     });
   }
 
@@ -54,6 +56,7 @@ export class ProfilesService {
         professionalProfile: true,
         serviceProviderProfile: true,
       },
+      relationLoadStrategy: 'join',
     });
 
     if (!profile) {
@@ -285,6 +288,7 @@ export class ProfilesService {
         professionalProfile: true,
         serviceProviderProfile: true,
       },
+      relationLoadStrategy: 'join',
     });
 
     if (!profile) {
@@ -306,6 +310,7 @@ export class ProfilesService {
         professionalProfile: true,
         serviceProviderProfile: true,
       },
+      relationLoadStrategy: 'join',
     });
   }
 
@@ -473,6 +478,7 @@ export class ProfilesService {
         professionalProfile: true,
         serviceProviderProfile: true,
       },
+      relationLoadStrategy: 'join',
     });
   }
 }
