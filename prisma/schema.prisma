@@ -41,6 +41,7 @@ model Profile {
   bio                        String                  @default("")
   role                       MemberRole              @default(other)
   location                   String                  @default("")
+  language                   String                  @default("")
   company                    String                  @default("")
   website                    String                  @default("")
   linkedinUrl                String                  @default("")
@@ -106,6 +107,8 @@ model FounderProfile {
   fundingNeeded String   @default("")
   teamSize      String   @default("")
   website       String   @default("")
+  founderStatus String   @default("")
+  currentRole   String   @default("")
   goals         String[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -113,16 +116,19 @@ model FounderProfile {
 }
 
 model InvestorProfile {
-  profileId       String   @id
-  fundName        String   @default("")
-  investmentRange String   @default("")
-  industries      String[]
-  geography       String   @default("")
-  portfolio       String   @default("")
-  goals           String[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  profile         Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId                String   @id
+  fundName                 String   @default("")
+  investmentRange          String   @default("")
+  industries               String[]
+  geography                String   @default("")
+  portfolio                String   @default("")
+  investorType             String   @default("")
+  investmentStage          String[]
+  yearsInvestingExperience String   @default("")
+  goals                    String[]
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  profile                  Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
 
 model AdvisorProfile {

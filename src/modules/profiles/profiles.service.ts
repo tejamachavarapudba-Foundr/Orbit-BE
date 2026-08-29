@@ -101,6 +101,8 @@ export class ProfilesService {
             fundingNeeded: roleProfile.data?.fundingNeeded ?? '',
             teamSize: roleProfile.data?.teamSize ?? '',
             website: roleProfile.data?.website ?? '',
+            founderStatus: roleProfile.data?.founderStatus ?? '',
+            currentRole: roleProfile.data?.currentRole ?? '',
             goals: roleProfile.data?.goals ?? [],
           },
 
@@ -113,6 +115,8 @@ export class ProfilesService {
             fundingNeeded: roleProfile.data?.fundingNeeded ?? '',
             teamSize: roleProfile.data?.teamSize ?? '',
             website: roleProfile.data?.website ?? '',
+            founderStatus: roleProfile.data?.founderStatus ?? '',
+            currentRole: roleProfile.data?.currentRole ?? '',
             goals: roleProfile.data?.goals ?? [],
           },
         });
@@ -137,6 +141,12 @@ export class ProfilesService {
               roleProfile.data?.geography ?? '',
             portfolio:
               roleProfile.data?.portfolio ?? '',
+            investorType:
+              roleProfile.data?.investorType ?? '',
+            investmentStage:
+              roleProfile.data?.investmentStage ?? [],
+            yearsInvestingExperience:
+              roleProfile.data?.yearsInvestingExperience ?? '',
             goals:
               roleProfile.data?.goals ?? [],
           },
@@ -152,6 +162,12 @@ export class ProfilesService {
               roleProfile.data?.geography ?? '',
             portfolio:
               roleProfile.data?.portfolio ?? '',
+            investorType:
+              roleProfile.data?.investorType ?? '',
+            investmentStage:
+              roleProfile.data?.investmentStage ?? [],
+            yearsInvestingExperience:
+              roleProfile.data?.yearsInvestingExperience ?? '',
             goals:
               roleProfile.data?.goals ?? [],
           },
