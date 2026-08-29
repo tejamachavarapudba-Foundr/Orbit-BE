@@ -106,6 +106,7 @@ export class ProfilesService {
             website: roleProfile.data?.website ?? '',
             founderStatus: roleProfile.data?.founderStatus ?? '',
             currentRole: roleProfile.data?.currentRole ?? '',
+            portfolio: roleProfile.data?.portfolio ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
 
@@ -120,6 +121,7 @@ export class ProfilesService {
             website: roleProfile.data?.website ?? '',
             founderStatus: roleProfile.data?.founderStatus ?? '',
             currentRole: roleProfile.data?.currentRole ?? '',
+            portfolio: roleProfile.data?.portfolio ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
         });
@@ -143,9 +145,11 @@ export class ProfilesService {
             geography:
               roleProfile.data?.geography ?? '',
             portfolio:
-              roleProfile.data?.portfolio ?? '',
+              roleProfile.data?.portfolio ?? [],
             investorType:
               roleProfile.data?.investorType ?? '',
+            investingAs:
+              roleProfile.data?.investingAs ?? '',
             investmentStage:
               roleProfile.data?.investmentStage ?? [],
             yearsInvestingExperience:
@@ -164,9 +168,11 @@ export class ProfilesService {
             geography:
               roleProfile.data?.geography ?? '',
             portfolio:
-              roleProfile.data?.portfolio ?? '',
+              roleProfile.data?.portfolio ?? [],
             investorType:
               roleProfile.data?.investorType ?? '',
+            investingAs:
+              roleProfile.data?.investingAs ?? '',
             investmentStage:
               roleProfile.data?.investmentStage ?? [],
             yearsInvestingExperience:
@@ -185,9 +191,11 @@ export class ProfilesService {
           where: { profileId: id },
           update: {
             expertise: roleProfile.data?.expertise ?? [],
+            expertiseOther: roleProfile.data?.expertiseOther ?? '',
             yearsExperience: roleProfile.data?.yearsExperience ?? '',
             industries: roleProfile.data?.industries ?? [],
             mentorshipAreas: roleProfile.data?.mentorshipAreas ?? [],
+            mentorshipExperience: roleProfile.data?.mentorshipExperience ?? '',
             certifications: roleProfile.data?.certifications ?? [],
             experiences: roleProfile.data?.experiences ?? [],
             goals: roleProfile.data?.goals ?? [],
@@ -195,9 +203,11 @@ export class ProfilesService {
           create: {
             profileId: id,
             expertise: roleProfile.data?.expertise ?? [],
+            expertiseOther: roleProfile.data?.expertiseOther ?? '',
             yearsExperience: roleProfile.data?.yearsExperience ?? '',
             industries: roleProfile.data?.industries ?? [],
             mentorshipAreas: roleProfile.data?.mentorshipAreas ?? [],
+            mentorshipExperience: roleProfile.data?.mentorshipExperience ?? '',
             certifications: roleProfile.data?.certifications ?? [],
             experiences: roleProfile.data?.experiences ?? [],
             goals: roleProfile.data?.goals ?? [],

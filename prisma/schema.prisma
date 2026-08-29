@@ -111,6 +111,7 @@ model FounderProfile {
   website       String   @default("")
   founderStatus String   @default("")
   currentRole   String   @default("")
+  portfolio     String[]
   goals         String[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -123,8 +124,9 @@ model InvestorProfile {
   investmentRange          String   @default("")
   industries               String[]
   geography                String   @default("")
-  portfolio                String   @default("")
+  portfolio                String[]
   investorType             String   @default("")
+  investingAs              String   @default("")
   investmentStage          String[]
   yearsInvestingExperience String   @default("")
   goals                    String[]
@@ -134,14 +136,16 @@ model InvestorProfile {
 }
 
 model AdvisorProfile {
-  profileId       String   @id
-  expertise       String[]
-  yearsExperience String   @default("")
-  industries      String[]
-  mentorshipAreas String[]
-  certifications  Json     @default("[]")
-  experiences     Json     @default("[]")
-  goals           String[]
+  profileId             String   @id
+  expertise             String[]
+  expertiseOther        String   @default("")
+  yearsExperience       String   @default("")
+  industries            String[]
+  mentorshipAreas       String[]
+  mentorshipExperience  String   @default("")
+  certifications        Json     @default("[]")
+  experiences           Json     @default("[]")
+  goals                 String[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   profile         Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
