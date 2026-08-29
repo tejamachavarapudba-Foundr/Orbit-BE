@@ -96,7 +96,7 @@ export class ProfilesService {
           update: {
             startupName: roleProfile.data?.startupName ?? '',
             startupStage: roleProfile.data?.startupStage ?? '',
-            industry: roleProfile.data?.industry ?? '',
+            industry: roleProfile.data?.industry ?? [],
             pitch: roleProfile.data?.pitch ?? '',
             fundingNeeded: roleProfile.data?.fundingNeeded ?? '',
             teamSize: roleProfile.data?.teamSize ?? '',
@@ -110,7 +110,7 @@ export class ProfilesService {
             profileId: id,
             startupName: roleProfile.data?.startupName ?? '',
             startupStage: roleProfile.data?.startupStage ?? '',
-            industry: roleProfile.data?.industry ?? '',
+            industry: roleProfile.data?.industry ?? [],
             pitch: roleProfile.data?.pitch ?? '',
             fundingNeeded: roleProfile.data?.fundingNeeded ?? '',
             teamSize: roleProfile.data?.teamSize ?? '',

@@ -41,7 +41,7 @@ model Profile {
   bio                        String                  @default("")
   role                       MemberRole              @default(other)
   location                   String                  @default("")
-  language                   String                  @default("")
+  language                   String[]
   company                    String                  @default("")
   website                    String                  @default("")
   linkedinUrl                String                  @default("")
@@ -102,7 +102,7 @@ model FounderProfile {
   profileId     String   @id
   startupName   String   @default("")
   startupStage  String   @default("")
-  industry      String   @default("")
+  industry      String[]
   pitch         String   @default("")
   fundingNeeded String   @default("")
   teamSize      String   @default("")
