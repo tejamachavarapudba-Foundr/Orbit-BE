@@ -155,6 +155,7 @@ model ProfessionalProfile {
   profileId          String   @id
   skills             String[]
   experienceLevel    String   @default("")
+  experiencePeriods  Json     @default("[]")
   portfolio          String   @default("")
   resume             String   @default("")
   certifications     Json     @default("[]")
@@ -171,6 +172,7 @@ model ServiceProviderProfile {
   profileId          String   @id
   company            String   @default("")
   services           String[]
+  servicesOther      String   @default("")
   website            String   @default("")
   companyLinkedinUrl String   @default("")
   clientIndustries   String[]

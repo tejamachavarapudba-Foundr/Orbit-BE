@@ -224,6 +224,7 @@ export class ProfilesService {
           update: {
             skills: roleProfile.data?.skills ?? [],
             experienceLevel: roleProfile.data?.experienceLevel ?? '',
+            experiencePeriods: roleProfile.data?.experiencePeriods ?? [],
             portfolio: roleProfile.data?.portfolio ?? '',
             resume: roleProfile.data?.resume ?? '',
             specialization: roleProfile.data?.specialization ?? '',
@@ -236,6 +237,7 @@ export class ProfilesService {
             profileId: id,
             skills: roleProfile.data?.skills ?? [],
             experienceLevel: roleProfile.data?.experienceLevel ?? '',
+            experiencePeriods: roleProfile.data?.experiencePeriods ?? [],
             portfolio: roleProfile.data?.portfolio ?? '',
             resume: roleProfile.data?.resume ?? '',
             specialization: roleProfile.data?.specialization ?? '',
@@ -256,6 +258,7 @@ export class ProfilesService {
           update: {
             company: roleProfile.data?.company ?? '',
             services: roleProfile.data?.services ?? [],
+            servicesOther: roleProfile.data?.servicesOther ?? '',
             website: roleProfile.data?.website ?? '',
             companyLinkedinUrl: roleProfile.data?.companyLinkedinUrl ?? '',
             clientIndustries: roleProfile.data?.clientIndustries ?? [],
@@ -265,6 +268,7 @@ export class ProfilesService {
             profileId: id,
             company: roleProfile.data?.company ?? '',
             services: roleProfile.data?.services ?? [],
+            servicesOther: roleProfile.data?.servicesOther ?? '',
             website: roleProfile.data?.website ?? '',
             companyLinkedinUrl: roleProfile.data?.companyLinkedinUrl ?? '',
             clientIndustries: roleProfile.data?.clientIndustries ?? [],

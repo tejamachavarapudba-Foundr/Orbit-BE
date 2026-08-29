@@ -89,7 +89,14 @@ export class OnboardingService {
         const data = {
           startupName: roleData.startupName ?? '',
           startupStage: roleData.startupStage ?? '',
-          industry: roleData.industry ?? '',
+          industry: roleData.industry ?? [],
+          pitch: roleData.pitch ?? '',
+          fundingNeeded: roleData.fundingNeeded ?? '',
+          teamSize: roleData.teamSize ?? '',
+          website: roleData.website ?? '',
+          founderStatus: roleData.founderStatus ?? '',
+          currentRole: roleData.currentRole ?? '',
+          portfolio: roleData.portfolio ?? [],
           goals,
         };
         await this.prisma.founderProfile.upsert({
@@ -105,7 +112,11 @@ export class OnboardingService {
           investmentRange: roleData.investmentRange ?? '',
           industries: roleData.industries ?? [],
           geography: roleData.geography ?? '',
-          portfolio: roleData.portfolio ?? '',
+          portfolio: roleData.portfolio ?? [],
+          investorType: roleData.investorType ?? '',
+          investingAs: roleData.investingAs ?? '',
+          investmentStage: roleData.investmentStage ?? [],
+          yearsInvestingExperience: roleData.yearsInvestingExperience ?? '',
           goals,
         };
         await this.prisma.investorProfile.upsert({
@@ -118,9 +129,11 @@ export class OnboardingService {
       case 'advisor': {
         const data = {
           expertise: roleData.expertise ?? [],
+          expertiseOther: roleData.expertiseOther ?? '',
           yearsExperience: roleData.yearsExperience ?? '',
           industries: roleData.industries ?? [],
           mentorshipAreas: roleData.mentorshipAreas ?? [],
+          mentorshipExperience: roleData.mentorshipExperience ?? '',
           goals,
         };
         await this.prisma.advisorProfile.upsert({
@@ -134,6 +147,7 @@ export class OnboardingService {
         const data = {
           skills: roleData.skills ?? [],
           experienceLevel: roleData.experienceLevel ?? '',
+          experiencePeriods: roleData.experiencePeriods ?? [],
           portfolio: roleData.portfolio ?? '',
           resume: roleData.resume ?? '',
           specialization: roleData.specialization ?? '',
@@ -151,7 +165,9 @@ export class OnboardingService {
         const data = {
           company: roleData.company ?? '',
           services: roleData.services ?? [],
+          servicesOther: roleData.servicesOther ?? '',
           website: roleData.website ?? '',
+          companyLinkedinUrl: roleData.companyLinkedinUrl ?? '',
           clientIndustries: roleData.clientIndustries ?? [],
           goals,
         };
