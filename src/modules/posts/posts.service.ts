@@ -28,6 +28,11 @@ export class PostsService {
       },
       skip: (page - 1) * limit,
       take: limit,
+      // Without this, Prisma issues a separate DB round trip per relation
+      // (author, media, likes, comments, comment.author — ~6 sequential
+      // queries) instead of one SQL join, which is where most of the
+      // multi-second GET /posts latency was coming from.
+      relationLoadStrategy: 'join',
     });
   }
 
