@@ -31,6 +31,8 @@ export class JobsService {
         applications: { where: { applicantId: userId } },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100,
+      relationLoadStrategy: 'join',
     });
 
     return jobs.map(({ _count, ...job }) => ({ ...job, applicationsCount: _count.applications }));

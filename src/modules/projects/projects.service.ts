@@ -23,6 +23,9 @@ export class ProjectsService {
         likedBy: userId ? { where: { userId }, select: { id: true } } : false,
         viewedBy: userId ? { where: { userId }, select: { id: true } } : false,
       },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      relationLoadStrategy: 'join',
     });
 
     return projects.map((project: any) => ({
