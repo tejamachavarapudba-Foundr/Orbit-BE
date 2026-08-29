@@ -42,6 +42,7 @@ model Profile {
   role                       MemberRole              @default(other)
   location                   String                  @default("")
   language                   String[]
+  fcmTokens                  String[]
   company                    String                  @default("")
   website                    String                  @default("")
   linkedinUrl                String                  @default("")

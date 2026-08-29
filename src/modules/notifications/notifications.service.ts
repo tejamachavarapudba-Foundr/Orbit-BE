@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { PushService } from '../push/push.service';
 import { NotificationType } from '@prisma/client';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private push: PushService,
+  ) {}
 
   // 1. Fetch clear histories for the authenticated user only
   async list(userId: string) {
@@ -51,7 +55,7 @@ export class NotificationsService {
   // ==========================================
   // Inject this service into other modules to trigger contextual alerts
   async createNotification(userId: string, type: NotificationType, title: string, message: string) {
-    return this.prisma.notification.create({
+    const notification = await this.prisma.notification.create({
       data: {
         userId,
         type,
@@ -59,5 +63,9 @@ export class NotificationsService {
         message,
       },
     });
+
+    void this.push.sendToProfile(userId, title, message);
+
+    return notification;
   }
 }
