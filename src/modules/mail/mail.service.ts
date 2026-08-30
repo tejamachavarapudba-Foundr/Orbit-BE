@@ -45,12 +45,13 @@ export class MailService {
     );
   }
 
-  async sendVerificationEmail(email: string, verifyLink: string) {
+  async sendVerificationEmail(email: string, code: string) {
     await this.send(
       email,
-      'Confirm your Orbit email',
-      `<p>Welcome to Orbit — confirm your email to finish setting up your account.</p>
-       <p><a href="${verifyLink}">Tap here to confirm your email</a>. This link expires in 24 hours.</p>`,
+      'Your Orbit verification code',
+      `<p>Welcome to Orbit — enter this code in the app to confirm your email.</p>
+       <p style="font-size: 32px; font-weight: 700; letter-spacing: 8px; margin: 24px 0;">${code}</p>
+       <p>This code expires in 10 minutes. If you didn't request this, you can safely ignore this email.</p>`,
     );
   }
 }

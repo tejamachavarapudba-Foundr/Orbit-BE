@@ -9,8 +9,11 @@ import { MailService } from '../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SmsService } from '../sms/sms.service';
 
-const VERIFICATION_TTL_MS = 24 * 60 * 60 * 1000;
+const OTP_TTL_MS = 10 * 60 * 1000;
 const RESET_TTL_MS = 60 * 60 * 1000;
+const MAX_OTP_ATTEMPTS = 5;
+
+const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
 
 @Injectable()
 export class AuthService {
@@ -26,13 +29,13 @@ export class AuthService {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
     if (existing) throw new ConflictException('Email already in use');
     const passwordHash = await hash(dto.password);
-    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationToken = generateOtp();
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         passwordHash,
         verificationToken,
-        verificationTokenExpires: new Date(Date.now() + VERIFICATION_TTL_MS),
+        verificationTokenExpires: new Date(Date.now() + OTP_TTL_MS),
         profile: { create: { fullName: dto.fullName } },
       },
     });
@@ -47,7 +50,7 @@ export class AuthService {
     // an unverified account is still usable (soft gate), so a flaky mail
     // provider should never be able to block registration.
     try {
-      await this.mail.sendVerificationEmail(user.email, this.buildDeepLink('APP_VERIFY_EMAIL_DEEP_LINK', verificationToken));
+      await this.mail.sendVerificationEmail(user.email, verificationToken);
     } catch {
       // already logged inside MailService
     }
@@ -67,32 +70,57 @@ export class AuthService {
     return `${base}?token=${token}`;
   }
 
-  async verifyEmail(token: string) {
-    const user = await this.prisma.user.findUnique({ where: { verificationToken: token } });
-    if (!user || !user.verificationTokenExpires || user.verificationTokenExpires < new Date()) {
-      throw new BadRequestException('This verification link is invalid or has expired.');
+  async verifyEmailOtp(email: string, code: string) {
+    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+    if (!user || user.emailVerified) {
+      throw new BadRequestException('This code is invalid or has expired.');
+    }
+
+    if (!user.verificationToken || !user.verificationTokenExpires || user.verificationTokenExpires < new Date()) {
+      throw new BadRequestException('This code has expired — request a new one.');
+    }
+
+    if (user.verificationAttempts >= MAX_OTP_ATTEMPTS) {
+      throw new BadRequestException('Too many incorrect attempts — request a new code.');
+    }
+
+    if (user.verificationToken !== code) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { verificationAttempts: { increment: 1 } },
+      });
+      throw new BadRequestException('That code is incorrect.');
     }
 
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { emailVerified: true, verificationToken: null, verificationTokenExpires: null },
+      data: {
+        emailVerified: true,
+        verificationToken: null,
+        verificationTokenExpires: null,
+        verificationAttempts: 0,
+      },
     });
 
     return { success: true, message: 'Email verified.' };
   }
 
   async resendVerification(email: string) {
-    const genericResponse = { success: true, message: 'If an account exists with that email, a confirmation link has been sent.' };
+    const genericResponse = { success: true, message: 'If an account exists with that email, a confirmation code has been sent.' };
     const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
     if (!user || user.emailVerified) return genericResponse;
 
-    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationToken = generateOtp();
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { verificationToken, verificationTokenExpires: new Date(Date.now() + VERIFICATION_TTL_MS) },
+      data: {
+        verificationToken,
+        verificationTokenExpires: new Date(Date.now() + OTP_TTL_MS),
+        verificationAttempts: 0,
+      },
     });
 
-    await this.mail.sendVerificationEmail(user.email, this.buildDeepLink('APP_VERIFY_EMAIL_DEEP_LINK', verificationToken));
+    await this.mail.sendVerificationEmail(user.email, verificationToken);
     return genericResponse;
   }
 

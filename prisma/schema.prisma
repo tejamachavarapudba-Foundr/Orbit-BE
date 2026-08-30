@@ -22,8 +22,9 @@ model User {
   resetToken        String?          @unique
   resetTokenExpires DateTime?
   emailVerified            Boolean   @default(false)
-  verificationToken        String?   @unique
+  verificationToken        String?
   verificationTokenExpires DateTime?
+  verificationAttempts     Int       @default(0)
   phoneNumber              String?   @unique
   phoneVerified            Boolean   @default(false)
   auditLogs         AuditLog[]
