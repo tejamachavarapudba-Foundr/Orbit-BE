@@ -113,8 +113,7 @@ const ROLE_FIELDS: Record<string, CompletionField[]> = {
       weight: 10,
       isFilled: (_i, r) => hasItems(field('experiencePeriods')(r)) || hasText(field('experienceLevel')(r)),
     },
-    { weight: 6, isFilled: (_i, r) => hasText(field('portfolio')(r)) },
-    { weight: 8, isFilled: (i, r) => hasText(i.resumeKey) || hasText(field('resume')(r)) },
+    { weight: 8, isFilled: (i) => hasText(i.resumeKey) },
   ],
   service_provider: [
     { weight: 10, isFilled: (i, r) => hasText(i.company) || hasText(field('company')(r)) },
