@@ -14,19 +14,58 @@ export class ProjectsService {
     private readonly storageService: StorageService,
   ) {}
 
-  async list() {
+  async list(userId?: string) {
     const projects = await this.prisma.project.findMany({
       include: {
         investorSnapshot: true,
         owner: { select: { founderVerification: { select: { status: true } } } },
+        _count: { select: { likedBy: true, members: true } },
+        likedBy: userId ? { where: { userId }, select: { id: true } } : false,
+        viewedBy: userId ? { where: { userId }, select: { id: true } } : false,
       },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      relationLoadStrategy: 'join',
     });
 
     return projects.map((project: any) => ({
       ...project,
       founderVerified: project.owner?.founderVerification?.status === 'approved',
       owner: undefined,
+      likeCount: project._count?.likedBy ?? 0,
+      // Real roster count, not the self-reported teamSize field — those two
+      // used to disagree (card said "Team 1" from teamSize's default while
+      // the detail screen's actual member list showed 0).
+      teamMemberCount: project._count?.members ?? 0,
+      isLikedByMe: Boolean(project.likedBy?.length),
+      isViewedByMe: Boolean(project.viewedBy?.length),
+      _count: undefined,
+      likedBy: undefined,
+      viewedBy: undefined,
     }));
+  }
+
+  async toggleLike(userId: string, projectId: string) {
+    const existing = await this.prisma.startupLike.findUnique({
+      where: { userId_projectId: { userId, projectId } },
+    });
+
+    if (existing) {
+      await this.prisma.startupLike.delete({ where: { id: existing.id } });
+      return { liked: false };
+    }
+
+    await this.prisma.startupLike.create({ data: { userId, projectId } });
+    return { liked: true };
+  }
+
+  async markViewed(userId: string, projectId: string) {
+    await this.prisma.startupView.upsert({
+      where: { userId_projectId: { userId, projectId } },
+      update: {},
+      create: { userId, projectId },
+    });
+    return { viewed: true };
   }
 
   async create(userId: string, dto: any) {
@@ -516,6 +555,36 @@ export class ProjectsService {
       logoUrl: upload.url,
     },
   });
+  }
+
+  async updateCover(projectId: string, userId: string, file: Express.Multer.File) {
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.ownerId !== userId) {
+      throw new ForbiddenException('Permission denied.');
+    }
+
+    const upload = await this.storageService.upload(file, StorageType.PROJECT, project.id);
+
+    if (project.coverUrl) {
+      try {
+        const oldPath = this.storageService.extractPathFromUrl(project.coverUrl);
+        if (oldPath) {
+          await this.storageService.delete(StorageType.PROJECT, oldPath);
+        }
+      } catch (error) {
+        console.warn('Failed to delete previous project cover', error);
+      }
+    }
+
+    return this.prisma.project.update({
+      where: { id: project.id },
+      data: { coverUrl: upload.url },
+    });
   }
 
 }

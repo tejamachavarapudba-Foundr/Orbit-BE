@@ -39,6 +39,8 @@ export class ProfilesService {
         professionalProfile: true,
         serviceProviderProfile: true,
       },
+      take: 200,
+      relationLoadStrategy: 'join',
     });
   }
 
@@ -54,6 +56,7 @@ export class ProfilesService {
         professionalProfile: true,
         serviceProviderProfile: true,
       },
+      relationLoadStrategy: 'join',
     });
 
     if (!profile) {
@@ -96,11 +99,15 @@ export class ProfilesService {
           update: {
             startupName: roleProfile.data?.startupName ?? '',
             startupStage: roleProfile.data?.startupStage ?? '',
-            industry: roleProfile.data?.industry ?? '',
+            industry: roleProfile.data?.industry ?? [],
             pitch: roleProfile.data?.pitch ?? '',
             fundingNeeded: roleProfile.data?.fundingNeeded ?? '',
             teamSize: roleProfile.data?.teamSize ?? '',
             website: roleProfile.data?.website ?? '',
+            founderStatus: roleProfile.data?.founderStatus ?? '',
+            currentRole: roleProfile.data?.currentRole ?? '',
+            currentRoleOther: roleProfile.data?.currentRoleOther ?? '',
+            portfolio: roleProfile.data?.portfolio ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
 
@@ -108,11 +115,15 @@ export class ProfilesService {
             profileId: id,
             startupName: roleProfile.data?.startupName ?? '',
             startupStage: roleProfile.data?.startupStage ?? '',
-            industry: roleProfile.data?.industry ?? '',
+            industry: roleProfile.data?.industry ?? [],
             pitch: roleProfile.data?.pitch ?? '',
             fundingNeeded: roleProfile.data?.fundingNeeded ?? '',
             teamSize: roleProfile.data?.teamSize ?? '',
             website: roleProfile.data?.website ?? '',
+            founderStatus: roleProfile.data?.founderStatus ?? '',
+            currentRole: roleProfile.data?.currentRole ?? '',
+            currentRoleOther: roleProfile.data?.currentRoleOther ?? '',
+            portfolio: roleProfile.data?.portfolio ?? [],
             goals: roleProfile.data?.goals ?? [],
           },
         });
@@ -136,7 +147,17 @@ export class ProfilesService {
             geography:
               roleProfile.data?.geography ?? '',
             portfolio:
-              roleProfile.data?.portfolio ?? '',
+              roleProfile.data?.portfolio ?? [],
+            investorType:
+              roleProfile.data?.investorType ?? '',
+            investorTypeOther:
+              roleProfile.data?.investorTypeOther ?? '',
+            investingAs:
+              roleProfile.data?.investingAs ?? '',
+            investmentStage:
+              roleProfile.data?.investmentStage ?? [],
+            yearsInvestingExperience:
+              roleProfile.data?.yearsInvestingExperience ?? '',
             goals:
               roleProfile.data?.goals ?? [],
           },
@@ -151,7 +172,17 @@ export class ProfilesService {
             geography:
               roleProfile.data?.geography ?? '',
             portfolio:
-              roleProfile.data?.portfolio ?? '',
+              roleProfile.data?.portfolio ?? [],
+            investorType:
+              roleProfile.data?.investorType ?? '',
+            investorTypeOther:
+              roleProfile.data?.investorTypeOther ?? '',
+            investingAs:
+              roleProfile.data?.investingAs ?? '',
+            investmentStage:
+              roleProfile.data?.investmentStage ?? [],
+            yearsInvestingExperience:
+              roleProfile.data?.yearsInvestingExperience ?? '',
             goals:
               roleProfile.data?.goals ?? [],
           },
@@ -166,9 +197,11 @@ export class ProfilesService {
           where: { profileId: id },
           update: {
             expertise: roleProfile.data?.expertise ?? [],
+            expertiseOther: roleProfile.data?.expertiseOther ?? '',
             yearsExperience: roleProfile.data?.yearsExperience ?? '',
             industries: roleProfile.data?.industries ?? [],
             mentorshipAreas: roleProfile.data?.mentorshipAreas ?? [],
+            mentorshipExperience: roleProfile.data?.mentorshipExperience ?? '',
             certifications: roleProfile.data?.certifications ?? [],
             experiences: roleProfile.data?.experiences ?? [],
             goals: roleProfile.data?.goals ?? [],
@@ -176,9 +209,11 @@ export class ProfilesService {
           create: {
             profileId: id,
             expertise: roleProfile.data?.expertise ?? [],
+            expertiseOther: roleProfile.data?.expertiseOther ?? '',
             yearsExperience: roleProfile.data?.yearsExperience ?? '',
             industries: roleProfile.data?.industries ?? [],
             mentorshipAreas: roleProfile.data?.mentorshipAreas ?? [],
+            mentorshipExperience: roleProfile.data?.mentorshipExperience ?? '',
             certifications: roleProfile.data?.certifications ?? [],
             experiences: roleProfile.data?.experiences ?? [],
             goals: roleProfile.data?.goals ?? [],
@@ -195,6 +230,7 @@ export class ProfilesService {
           update: {
             skills: roleProfile.data?.skills ?? [],
             experienceLevel: roleProfile.data?.experienceLevel ?? '',
+            experiencePeriods: roleProfile.data?.experiencePeriods ?? [],
             portfolio: roleProfile.data?.portfolio ?? '',
             resume: roleProfile.data?.resume ?? '',
             specialization: roleProfile.data?.specialization ?? '',
@@ -207,6 +243,7 @@ export class ProfilesService {
             profileId: id,
             skills: roleProfile.data?.skills ?? [],
             experienceLevel: roleProfile.data?.experienceLevel ?? '',
+            experiencePeriods: roleProfile.data?.experiencePeriods ?? [],
             portfolio: roleProfile.data?.portfolio ?? '',
             resume: roleProfile.data?.resume ?? '',
             specialization: roleProfile.data?.specialization ?? '',
@@ -227,6 +264,7 @@ export class ProfilesService {
           update: {
             company: roleProfile.data?.company ?? '',
             services: roleProfile.data?.services ?? [],
+            servicesOther: roleProfile.data?.servicesOther ?? '',
             website: roleProfile.data?.website ?? '',
             companyLinkedinUrl: roleProfile.data?.companyLinkedinUrl ?? '',
             clientIndustries: roleProfile.data?.clientIndustries ?? [],
@@ -236,6 +274,7 @@ export class ProfilesService {
             profileId: id,
             company: roleProfile.data?.company ?? '',
             services: roleProfile.data?.services ?? [],
+            servicesOther: roleProfile.data?.servicesOther ?? '',
             website: roleProfile.data?.website ?? '',
             companyLinkedinUrl: roleProfile.data?.companyLinkedinUrl ?? '',
             clientIndustries: roleProfile.data?.clientIndustries ?? [],
@@ -269,6 +308,7 @@ export class ProfilesService {
         professionalProfile: true,
         serviceProviderProfile: true,
       },
+      relationLoadStrategy: 'join',
     });
 
     if (!profile) {
@@ -290,6 +330,7 @@ export class ProfilesService {
         professionalProfile: true,
         serviceProviderProfile: true,
       },
+      relationLoadStrategy: 'join',
     });
   }
 
@@ -457,6 +498,7 @@ export class ProfilesService {
         professionalProfile: true,
         serviceProviderProfile: true,
       },
+      relationLoadStrategy: 'join',
     });
   }
 }

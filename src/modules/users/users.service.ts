@@ -5,9 +5,15 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  // No caller paginates this today (it backs the member directory and the
+  // meeting invite picker, both of which filter client-side against the
+  // full result) — capped here so it stays bounded as the user base grows,
+  // rather than the previous fully-unbounded findMany.
   async findAll() {
     return this.prisma.user.findMany({
       select: { id: true, email: true, profile: true, createdAt: true },
+      take: 200,
+      orderBy: { createdAt: 'desc' },
     });
   }
   async findOne(id: string) {

@@ -22,6 +22,8 @@ export class EventsService {
         attendees: { where: { userId }, select: { id: true } },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100,
+      relationLoadStrategy: 'join',
     });
   }
 
@@ -44,6 +46,8 @@ export class EventsService {
         attendees: { where: { userId }, select: { id: true } },
       },
       orderBy: { createdAt: 'desc' },
+      take: 100,
+      relationLoadStrategy: 'join',
     });
   }
 

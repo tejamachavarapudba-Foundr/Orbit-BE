@@ -34,6 +34,7 @@
     "bull": "^4.15.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.4",
+    "firebase-admin": "^14.3.0",
     "ioredis": "^5.4.1",
     "multer": "^2.2.0",
     "passport": "^0.7.0",
@@ -66,5 +67,9 @@
   },
   "engines": {
     "node": "22.x"
+  },
+  "allowScripts": {
+    "@firebase/util@1.15.3": true,
+    "protobufjs@7.6.6": true
   }
 }

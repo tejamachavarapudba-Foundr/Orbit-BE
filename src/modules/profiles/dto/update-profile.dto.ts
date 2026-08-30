@@ -5,6 +5,7 @@ export class UpdateProfileDto {
   @IsOptional() @IsString() bio?: string;
   @IsOptional() @IsString() role?: string;
   @IsOptional() @IsString() location?: string;
+  @IsOptional() @IsArray() language?: string[];
   @IsOptional() @IsString() company?: string;
   @IsOptional() @IsString() website?: string;
   @IsOptional() @IsString() linkedinUrl?: string;

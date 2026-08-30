@@ -12,9 +12,9 @@ import { UpdateProjectDto } from './dto/update-project.dto';
 export class ProjectsController {
   constructor(private svc: ProjectsService) {}
 
-  @Get() 
-  list() { 
-    return this.svc.list(); 
+  @Get()
+  list(@Req() req: any) {
+    return this.svc.list(req.user.id);
   }
 
   @Post()
@@ -45,6 +45,24 @@ export class ProjectsController {
     userId,
     file,
   );
+  }
+
+  @Patch(':id/cover')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
+  )
+  updateCover(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: any,
+  ) {
+    const userId = req.user.id || req.user.sub;
+    return this.svc.updateCover(id, userId, file);
   }
 
     @Patch(':id')
@@ -135,6 +153,16 @@ export class ProjectsController {
     return this.svc.getSavedStartups(
       req.user.id,
     );
+  }
+
+  @Post(":id/like")
+  toggleLike(@Param("id") id: string, @Req() req: any) {
+    return this.svc.toggleLike(req.user.id, id);
+  }
+
+  @Post(":id/view")
+  markViewed(@Param("id") id: string, @Req() req: any) {
+    return this.svc.markViewed(req.user.id, id);
   }
 
 }

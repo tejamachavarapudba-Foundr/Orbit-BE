@@ -1,6 +1,7 @@
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  provider        = "prisma-client-js"
+  binaryTargets   = ["native", "rhel-openssl-3.0.x"]
+  previewFeatures = ["relationJoins"]
 }
 
 datasource db {
@@ -30,6 +31,8 @@ model User {
   notifications     Notification[]
   profile           Profile?
   savedStartups     SavedStartup[]
+  likedStartups     StartupLike[]
+  viewedStartups    StartupView[]
 }
 
 model Profile {
@@ -39,6 +42,8 @@ model Profile {
   bio                        String                  @default("")
   role                       MemberRole              @default(other)
   location                   String                  @default("")
+  language                   String[]
+  fcmTokens                  String[]
   company                    String                  @default("")
   website                    String                  @default("")
   linkedinUrl                String                  @default("")
@@ -99,11 +104,15 @@ model FounderProfile {
   profileId     String   @id
   startupName   String   @default("")
   startupStage  String   @default("")
-  industry      String   @default("")
+  industry      String[]
   pitch         String   @default("")
   fundingNeeded String   @default("")
   teamSize      String   @default("")
   website       String   @default("")
+  founderStatus String   @default("")
+  currentRole   String   @default("")
+  currentRoleOther String @default("")
+  portfolio     String[]
   goals         String[]
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -111,27 +120,34 @@ model FounderProfile {
 }
 
 model InvestorProfile {
-  profileId       String   @id
-  fundName        String   @default("")
-  investmentRange String   @default("")
-  industries      String[]
-  geography       String   @default("")
-  portfolio       String   @default("")
-  goals           String[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  profile         Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  profileId                String   @id
+  fundName                 String   @default("")
+  investmentRange          String   @default("")
+  industries               String[]
+  geography                String   @default("")
+  portfolio                String[]
+  investorType             String   @default("")
+  investorTypeOther        String   @default("")
+  investingAs              String   @default("")
+  investmentStage          String[]
+  yearsInvestingExperience String   @default("")
+  goals                    String[]
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+  profile                  Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
 }
 
 model AdvisorProfile {
-  profileId       String   @id
-  expertise       String[]
-  yearsExperience String   @default("")
-  industries      String[]
-  mentorshipAreas String[]
-  certifications  Json     @default("[]")
-  experiences     Json     @default("[]")
-  goals           String[]
+  profileId             String   @id
+  expertise             String[]
+  expertiseOther        String   @default("")
+  yearsExperience       String   @default("")
+  industries            String[]
+  mentorshipAreas       String[]
+  mentorshipExperience  String   @default("")
+  certifications        Json     @default("[]")
+  experiences           Json     @default("[]")
+  goals                 String[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   profile         Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -141,6 +157,7 @@ model ProfessionalProfile {
   profileId          String   @id
   skills             String[]
   experienceLevel    String   @default("")
+  experiencePeriods  Json     @default("[]")
   portfolio          String   @default("")
   resume             String   @default("")
   certifications     Json     @default("[]")
@@ -157,6 +174,7 @@ model ServiceProviderProfile {
   profileId          String   @id
   company            String   @default("")
   services           String[]
+  servicesOther      String   @default("")
   website            String   @default("")
   companyLinkedinUrl String   @default("")
   clientIndustries   String[]
@@ -254,6 +272,8 @@ model Project {
   members          ProjectMember[]
   reviews          ProjectReview[]
   savedBy          SavedStartup[]
+  likedBy          StartupLike[]
+  viewedBy         StartupView[]
 
   @@index([ownerId])
   @@index([stage])
@@ -266,6 +286,28 @@ model SavedStartup {
   userId    String
   projectId String
   createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+model StartupLike {
+  id        String   @id @default(uuid())
+  userId    String
+  projectId String
+  createdAt DateTime @default(now())
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
+
+model StartupView {
+  id        String   @id @default(uuid())
+  userId    String
+  projectId String
+  viewedAt  DateTime @default(now())
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 

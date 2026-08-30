@@ -14,7 +14,7 @@ export class PostsService {
     private readonly storageService: StorageService,
   ) {}
 
-  async list(userId?: string) {
+  async list(userId?: string, page = 1, limit = 10) {
     return this.prisma.post.findMany({
       where: userId ? { notInterestedBy: { none: { userId } } } : undefined,
       include: {
@@ -26,6 +26,13 @@ export class PostsService {
        orderBy: {
        createdAt: "desc",
       },
+      skip: (page - 1) * limit,
+      take: limit,
+      // Without this, Prisma issues a separate DB round trip per relation
+      // (author, media, likes, comments, comment.author — ~6 sequential
+      // queries) instead of one SQL join, which is where most of the
+      // multi-second GET /posts latency was coming from.
+      relationLoadStrategy: 'join',
     });
   }
 
