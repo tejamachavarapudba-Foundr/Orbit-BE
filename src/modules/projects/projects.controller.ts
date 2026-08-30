@@ -65,6 +65,24 @@ export class ProjectsController {
     return this.svc.updateCover(id, userId, file);
   }
 
+  @Patch(':id/pitch-video')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 50 * 1024 * 1024,
+      },
+    }),
+  )
+  updatePitchVideo(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: any,
+  ) {
+    const userId = req.user.id || req.user.sub;
+    return this.svc.updatePitchVideo(id, userId, file);
+  }
+
     @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateProjectDto, @Req() req: any) {
     const userId = req.user.id || req.user.sub;

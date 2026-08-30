@@ -74,6 +74,14 @@ export class UpdateProjectDto {
 
   @IsOptional()
   @IsString()
+  askAmount?: string;
+
+  @IsOptional()
+  @IsString()
+  equityPercent?: string;
+
+  @IsOptional()
+  @IsString()
   githubUrl?: string;
 
   @IsOptional()

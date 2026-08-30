@@ -251,6 +251,8 @@ model Project {
   demoUrl          String               @default("")
   pitchDeckUrl     String               @default("")
   pitchVideoUrl    String               @default("")
+  askAmount        String               @default("")
+  equityPercent    String               @default("")
   githubUrl        String               @default("")
   twitterUrl       String               @default("")
   linkedinUrl      String               @default("")
