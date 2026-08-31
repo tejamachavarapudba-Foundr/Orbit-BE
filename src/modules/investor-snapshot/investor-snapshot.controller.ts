@@ -20,8 +20,9 @@ export class InvestorSnapshotController {
 
   // Route matches: GET /api/investor-snapshot/project/:projectId
   @Get('project/:projectId')
-  getSnapshot(@Param('projectId') projectId: string) {
-    return this.svc.getByProject(projectId);
+  getSnapshot(@Param('projectId') projectId: string, @Req() req: any) {
+    const userId = req.user?.id || req.user?.sub;
+    return this.svc.getByProject(projectId, userId);
   }
 
   // Route matches: POST /api/investor-snapshot/project/:projectId

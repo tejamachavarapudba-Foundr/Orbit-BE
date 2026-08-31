@@ -17,7 +17,10 @@ export class ProjectsService {
   async list(userId?: string) {
     const projects = await this.prisma.project.findMany({
       include: {
-        investorSnapshot: true,
+        // Summary only — the full snapshot (financials, cap table, KYC docs)
+        // is served exclusively by GET /investor-snapshot/project/:id, which
+        // enforces owner-or-investor access. Never expand this to `true`.
+        investorSnapshot: { select: { isCompleted: true, completionPercentage: true } },
         owner: { select: { founderVerification: { select: { status: true } } } },
         _count: { select: { likedBy: true, members: true } },
         likedBy: userId ? { where: { userId }, select: { id: true } } : false,
@@ -482,7 +485,8 @@ export class ProjectsService {
         include: {
         project: {
           include: {
-            investorSnapshot: true,
+            // Summary only — see note in list() above.
+            investorSnapshot: { select: { isCompleted: true, completionPercentage: true } },
             members: {
               include: {
                 user: true,
