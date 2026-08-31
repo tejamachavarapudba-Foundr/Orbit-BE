@@ -5,7 +5,7 @@ import { LoginDto } from './dto/login.dto';
 import { RefreshDto } from './dto/refresh.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { VerifyEmailDto } from './dto/verify-email.dto';
+import { VerifyEmailOtpDto } from './dto/verify-email-otp.dto';
 import { SendPhoneOtpDto } from './dto/send-phone-otp.dto';
 import { VerifyPhoneOtpDto } from './dto/verify-phone-otp.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -47,10 +47,10 @@ export class AuthController {
   }
 
   @Public()
-  @Post('verify-email')
+  @Post('verify-email-otp')
   @HttpCode(HttpStatus.OK)
-  verifyEmail(@Body() dto: VerifyEmailDto) {
-    return this.auth.verifyEmail(dto.token);
+  verifyEmailOtp(@Body() dto: VerifyEmailOtpDto) {
+    return this.auth.verifyEmailOtp(dto.email, dto.code);
   }
 
   @Public()

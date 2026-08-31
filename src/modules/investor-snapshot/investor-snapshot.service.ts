@@ -10,16 +10,45 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class InvestorSnapshotService {
   constructor(private prisma: PrismaService) {}
 
-  // 1. Anyone logged in (or explicitly Investors) can view the snapshot
-  async getByProject(projectId: string) {
-    const snapshot = await this.prisma.investorSnapshot.findUnique({
-      where: { projectId },
-    });
+  // 1. The project owner always sees their own full snapshot (needed to
+  // prefill the edit screens). Anyone else only sees a published snapshot,
+  // and only if they're an investor — and even then never the founder's
+  // compliance/KYC documents or private data-room links, which the investor
+  // view screen never renders and have no legitimate reason to leave the
+  // owner's own upload flow.
+  async getByProject(projectId: string, userId: string) {
+    const [project, snapshot] = await Promise.all([
+      this.prisma.project.findUnique({ where: { id: projectId }, select: { ownerId: true } }),
+      this.prisma.investorSnapshot.findUnique({ where: { projectId } }),
+    ]);
 
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
     if (!snapshot) {
       throw new NotFoundException('Investor snapshot for this project not found');
     }
-    return snapshot;
+
+    if (project.ownerId === userId) {
+      return snapshot;
+    }
+
+    const viewer = await this.prisma.profile.findUnique({ where: { id: userId }, select: { role: true } });
+    if (viewer?.role !== 'investor' || !snapshot.isCompleted) {
+      throw new ForbiddenException('You do not have access to this investor snapshot');
+    }
+
+    const {
+      govtIdDocUrl,
+      gstDocUrl,
+      registrationDocUrl,
+      dataRoomUrl,
+      financialProjectionUrl,
+      pitchDeckUrl,
+      ...safeSnapshot
+    } = snapshot;
+
+    return safeSnapshot;
   }
 
   // 2. Create snapshot (Only project owner)

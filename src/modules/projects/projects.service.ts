@@ -17,7 +17,10 @@ export class ProjectsService {
   async list(userId?: string) {
     const projects = await this.prisma.project.findMany({
       include: {
-        investorSnapshot: true,
+        // Summary only — the full snapshot (financials, cap table, KYC docs)
+        // is served exclusively by GET /investor-snapshot/project/:id, which
+        // enforces owner-or-investor access. Never expand this to `true`.
+        investorSnapshot: { select: { isCompleted: true, completionPercentage: true } },
         owner: { select: { founderVerification: { select: { status: true } } } },
         _count: { select: { likedBy: true, members: true } },
         likedBy: userId ? { where: { userId }, select: { id: true } } : false,
@@ -43,6 +46,46 @@ export class ProjectsService {
       likedBy: undefined,
       viewedBy: undefined,
     }));
+  }
+
+  async listReels(userId: string, cursor?: string, limit = 10) {
+    const projects = await this.prisma.project.findMany({
+      where: { pitchVideoUrl: { not: '' } },
+      take: limit,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        tagline: true,
+        logoUrl: true,
+        pitchVideoUrl: true,
+        ownerId: true,
+        createdAt: true,
+        _count: { select: { likedBy: true, comments: true } },
+        likedBy: userId ? { where: { userId }, select: { id: true } } : false,
+        savedBy: userId ? { where: { userId }, select: { id: true } } : false,
+      },
+    });
+
+    const items = projects.map((project: any) => ({
+      id: project.id,
+      name: project.name,
+      tagline: project.tagline,
+      logoUrl: project.logoUrl,
+      pitchVideoUrl: project.pitchVideoUrl,
+      ownerId: project.ownerId,
+      createdAt: project.createdAt,
+      likeCount: project._count?.likedBy ?? 0,
+      commentCount: project._count?.comments ?? 0,
+      isLikedByMe: Boolean(project.likedBy?.length),
+      isSavedByMe: Boolean(project.savedBy?.length),
+    }));
+
+    const nextCursor = projects.length === limit ? projects[projects.length - 1].id : null;
+
+    return { items, nextCursor };
   }
 
   async toggleLike(userId: string, projectId: string) {
@@ -93,6 +136,8 @@ export class ProjectsService {
 
       pitchDeckUrl: dto.pitchDeckUrl ?? "",
       pitchVideoUrl: dto.pitchVideoUrl ?? "",
+      askAmount: dto.askAmount ?? "",
+      equityPercent: dto.equityPercent ?? "",
 
       githubUrl: dto.githubUrl ?? "",
       twitterUrl: dto.twitterUrl ?? "",
@@ -480,7 +525,8 @@ export class ProjectsService {
         include: {
         project: {
           include: {
-            investorSnapshot: true,
+            // Summary only — see note in list() above.
+            investorSnapshot: { select: { isCompleted: true, completionPercentage: true } },
             members: {
               include: {
                 user: true,
@@ -584,6 +630,36 @@ export class ProjectsService {
     return this.prisma.project.update({
       where: { id: project.id },
       data: { coverUrl: upload.url },
+    });
+  }
+
+  async updatePitchVideo(projectId: string, userId: string, file: Express.Multer.File) {
+    const project = await this.prisma.project.findUnique({ where: { id: projectId } });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    if (project.ownerId !== userId) {
+      throw new ForbiddenException('Permission denied.');
+    }
+
+    const upload = await this.storageService.upload(file, StorageType.PROJECT, project.id);
+
+    if (project.pitchVideoUrl) {
+      try {
+        const oldPath = this.storageService.extractPathFromUrl(project.pitchVideoUrl);
+        if (oldPath) {
+          await this.storageService.delete(StorageType.PROJECT, oldPath);
+        }
+      } catch (error) {
+        console.warn('Failed to delete previous pitch video', error);
+      }
+    }
+
+    return this.prisma.project.update({
+      where: { id: project.id },
+      data: { pitchVideoUrl: upload.url },
     });
   }
 

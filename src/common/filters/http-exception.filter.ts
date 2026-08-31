@@ -10,9 +10,21 @@ export class HttpErrorFilter implements ExceptionFilter {
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
+      const response = exception.getResponse();
+      // ValidationPipe (class-validator) throws a BadRequestException whose
+      // .message is just the generic "Bad Request Exception" — the actual
+      // per-field messages live in .getResponse().message, as a string or
+      // an array of strings. Every 400 in the app was silently losing its
+      // real reason until this unwrapped it.
+      const rawMessage =
+        typeof response === 'object' && response !== null && 'message' in response
+          ? (response as { message: string | string[] }).message
+          : exception.message;
+      const message = Array.isArray(rawMessage) ? rawMessage.join(' ') : rawMessage;
+
       res.status(status).json({
         statusCode: status,
-        message: exception.message,
+        message,
         timestamp: new Date().toISOString(),
       });
       return;

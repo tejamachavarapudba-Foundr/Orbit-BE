@@ -227,7 +227,6 @@ export class StorageService {
     switch (type) {
 
       case StorageType.AVATAR:
-      case StorageType.PROJECT:
       case StorageType.EVENT:
 
         this.validateImage(file);
@@ -235,6 +234,7 @@ export class StorageService {
         break;
 
       case StorageType.POST:
+      case StorageType.PROJECT:
 
         if (
           file.mimetype.startsWith(

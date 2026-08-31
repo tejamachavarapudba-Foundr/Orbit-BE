@@ -22,8 +22,9 @@ model User {
   resetToken        String?          @unique
   resetTokenExpires DateTime?
   emailVerified            Boolean   @default(false)
-  verificationToken        String?   @unique
+  verificationToken        String?
   verificationTokenExpires DateTime?
+  verificationAttempts     Int       @default(0)
   phoneNumber              String?   @unique
   phoneVerified            Boolean   @default(false)
   auditLogs         AuditLog[]
@@ -83,6 +84,7 @@ model Profile {
   messagesSent               Message[]
   postsAuthored              Post[]
   postComments               PostComment[]
+  projectComments            ProjectComment[]
   postLikes                  PostLike[]
   savedPosts                 SavedPost[]
   postReports                PostReport[]
@@ -98,6 +100,9 @@ model Profile {
   organizedProposals         MeetingProposal[]       @relation("ProposalOrganizer")
   proposalInvitations        ProposalInvitee[]
   meetingJoins               MeetingJoin[]
+
+  @@index([createdAt])
+  @@index([role])
 }
 
 model FounderProfile {
@@ -250,6 +255,8 @@ model Project {
   demoUrl          String               @default("")
   pitchDeckUrl     String               @default("")
   pitchVideoUrl    String               @default("")
+  askAmount        String               @default("")
+  equityPercent    String               @default("")
   githubUrl        String               @default("")
   twitterUrl       String               @default("")
   linkedinUrl      String               @default("")
@@ -267,6 +274,7 @@ model Project {
   investorSnapshot InvestorSnapshot?
   meetingProposals MeetingProposal[]
   posts            Post[]
+  comments         ProjectComment[]
   owner            Profile              @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   applications     ProjectApplication[]
   members          ProjectMember[]
@@ -279,6 +287,7 @@ model Project {
   @@index([stage])
   @@index([projectType])
   @@index([isPublished])
+  @@index([createdAt])
 }
 
 model SavedStartup {
@@ -493,6 +502,22 @@ model PostComment {
   replies   PostComment[] @relation("CommentReplies")
 
   @@index([postId, createdAt])
+  @@index([parentId])
+}
+
+model ProjectComment {
+  id        String           @id @default(uuid())
+  projectId String
+  authorId  String
+  content   String
+  parentId  String?
+  createdAt DateTime         @default(now())
+  author    Profile          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent    ProjectComment?  @relation("ProjectCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ProjectComment[] @relation("ProjectCommentReplies")
+
+  @@index([projectId, createdAt])
   @@index([parentId])
 }
 
@@ -728,6 +753,7 @@ model Job {
   applications JobApplication[]
 
   @@index([createdAt])
+  @@index([posterId, createdAt])
 }
 
 model JobApplication {
@@ -763,7 +789,7 @@ model Notification {
   updatedAt DateTime         @updatedAt
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId])
+  @@index([userId, createdAt])
 }
 
 model AuditLog {

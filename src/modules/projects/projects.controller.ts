@@ -17,6 +17,15 @@ export class ProjectsController {
     return this.svc.list(req.user.id);
   }
 
+  // GET /projects/reels?cursor=&limit= — must stay above @Get(':id') or "reels"
+  // would be swallowed as an :id value.
+  @Get('reels')
+  listReels(@Req() req: any, @Query('cursor') cursor?: string, @Query('limit') limit?: string) {
+    const userId = req.user.id || req.user.sub;
+    const parsedLimit = limit ? Math.min(parseInt(limit, 10) || 10, 30) : 10;
+    return this.svc.listReels(userId, cursor, parsedLimit);
+  }
+
   @Post()
   create(@Body() dto: any, @Req() req: any) {
     const userId = req.user.id || req.user.sub;
@@ -63,6 +72,24 @@ export class ProjectsController {
   ) {
     const userId = req.user.id || req.user.sub;
     return this.svc.updateCover(id, userId, file);
+  }
+
+  @Patch(':id/pitch-video')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 50 * 1024 * 1024,
+      },
+    }),
+  )
+  updatePitchVideo(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: any,
+  ) {
+    const userId = req.user.id || req.user.sub;
+    return this.svc.updatePitchVideo(id, userId, file);
   }
 
     @Patch(':id')

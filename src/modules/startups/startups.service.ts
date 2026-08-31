@@ -54,7 +54,8 @@ export class StartupsService {
     // 1. Fetch startups using only valid, lowercase schema relation names
     const startups = await this.prisma.project.findMany({
       include: {
-        investorSnapshot: true,
+        // Summary only — see note in projects.service.ts's list().
+        investorSnapshot: { select: { isCompleted: true, completionPercentage: true } },
         owner: { select: { founderVerification: { select: { status: true } } } },
 
         _count: {
@@ -155,7 +156,8 @@ export class StartupsService {
         posts: true,        // Includes social updates feed
         reviews: true,      // Includes 1-5 star ratings
 
-        investorSnapshot: true,
+        // Summary only — see note in projects.service.ts's list().
+        investorSnapshot: { select: { isCompleted: true, completionPercentage: true } },
 
         members: {          // Fixes: Unknown field ProjectMember
           include: {
@@ -225,7 +227,10 @@ export class StartupsService {
       },
 
       include: {
-        investorSnapshot: true,
+        // Summary only — the full snapshot is served exclusively by
+        // GET /investor-snapshot/project/:id, which enforces owner-or-investor
+        // access with compliance-doc redaction. Never expand this to `true`.
+        investorSnapshot: { select: { isCompleted: true, completionPercentage: true } },
         owner: { select: { founderVerification: { select: { status: true } } } },
       },
 

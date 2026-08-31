@@ -10,6 +10,7 @@ export type ProfileCompletionInput = {
   company?: string | null;
   website?: string | null;
   linkedinUrl?: string | null;
+  language?: string[] | null;
   skills?: string[] | null;
   lookingFor?: string[] | null;
   resumeKey?: string | null;
@@ -41,6 +42,7 @@ const SHARED_FIELDS: CompletionField[] = [
   { weight: 8, isFilled: (i) => hasText(i.linkedinUrl) },
   { weight: 6, isFilled: (i) => hasText(i.avatarUrl) },
   { weight: 6, isFilled: (i) => hasText(i.bio) },
+  { weight: 6, isFilled: (i) => hasItems(i.language) },
   { weight: 10, isFilled: (i) => hasItems(i.lookingFor) },
 ];
 
@@ -94,6 +96,7 @@ const ROLE_FIELDS: Record<string, CompletionField[]> = {
     { weight: 6, isFilled: (_i, r) => hasText(field('investorType')(r)) },
     { weight: 10, isFilled: (_i, r) => hasText(field('investmentRange')(r)) },
     { weight: 6, isFilled: (_i, r) => hasItems(field('investmentStage')(r)) },
+    { weight: 4, isFilled: (_i, r) => hasText(field('geography')(r)) },
     { weight: 10, isFilled: (_i, r) => hasItems(field('industries')(r)) },
     { weight: 6, isFilled: (_i, r) => hasText(field('yearsInvestingExperience')(r)) },
     { weight: 6, isFilled: (_i, r) => hasItems(field('portfolio')(r)) },
