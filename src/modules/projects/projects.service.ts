@@ -48,6 +48,46 @@ export class ProjectsService {
     }));
   }
 
+  async listReels(userId: string, cursor?: string, limit = 10) {
+    const projects = await this.prisma.project.findMany({
+      where: { pitchVideoUrl: { not: '' } },
+      take: limit,
+      skip: cursor ? 1 : 0,
+      cursor: cursor ? { id: cursor } : undefined,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        tagline: true,
+        logoUrl: true,
+        pitchVideoUrl: true,
+        ownerId: true,
+        createdAt: true,
+        _count: { select: { likedBy: true, comments: true } },
+        likedBy: userId ? { where: { userId }, select: { id: true } } : false,
+        savedBy: userId ? { where: { userId }, select: { id: true } } : false,
+      },
+    });
+
+    const items = projects.map((project: any) => ({
+      id: project.id,
+      name: project.name,
+      tagline: project.tagline,
+      logoUrl: project.logoUrl,
+      pitchVideoUrl: project.pitchVideoUrl,
+      ownerId: project.ownerId,
+      createdAt: project.createdAt,
+      likeCount: project._count?.likedBy ?? 0,
+      commentCount: project._count?.comments ?? 0,
+      isLikedByMe: Boolean(project.likedBy?.length),
+      isSavedByMe: Boolean(project.savedBy?.length),
+    }));
+
+    const nextCursor = projects.length === limit ? projects[projects.length - 1].id : null;
+
+    return { items, nextCursor };
+  }
+
   async toggleLike(userId: string, projectId: string) {
     const existing = await this.prisma.startupLike.findUnique({
       where: { userId_projectId: { userId, projectId } },

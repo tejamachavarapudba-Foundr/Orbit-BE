@@ -84,6 +84,7 @@ model Profile {
   messagesSent               Message[]
   postsAuthored              Post[]
   postComments               PostComment[]
+  projectComments            ProjectComment[]
   postLikes                  PostLike[]
   savedPosts                 SavedPost[]
   postReports                PostReport[]
@@ -273,6 +274,7 @@ model Project {
   investorSnapshot InvestorSnapshot?
   meetingProposals MeetingProposal[]
   posts            Post[]
+  comments         ProjectComment[]
   owner            Profile              @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   applications     ProjectApplication[]
   members          ProjectMember[]
@@ -500,6 +502,22 @@ model PostComment {
   replies   PostComment[] @relation("CommentReplies")
 
   @@index([postId, createdAt])
+  @@index([parentId])
+}
+
+model ProjectComment {
+  id        String           @id @default(uuid())
+  projectId String
+  authorId  String
+  content   String
+  parentId  String?
+  createdAt DateTime         @default(now())
+  author    Profile          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  project   Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  parent    ProjectComment?  @relation("ProjectCommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   ProjectComment[] @relation("ProjectCommentReplies")
+
+  @@index([projectId, createdAt])
   @@index([parentId])
 }
 

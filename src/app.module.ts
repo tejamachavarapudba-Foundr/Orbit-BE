@@ -17,6 +17,7 @@ import { UsersModule } from './modules/users/users.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { PostsModule } from './modules/posts/posts.module';
 import { CommentsModule } from './modules/comments/comments.module';
+import { ProjectCommentsModule } from './modules/project-comments/project-comments.module';
 import { LikesModule } from './modules/likes/likes.module';
 import { FollowsModule } from './modules/follows/follows.module';
 import { ChatsModule } from './modules/chats/chats.module';
@@ -61,6 +62,7 @@ import { VerificationModule } from './modules/verification/verification.module';
     ProfilesModule,
     PostsModule,
     CommentsModule,
+    ProjectCommentsModule,
     LikesModule,
     FollowsModule,
     ChatsModule,
