@@ -211,7 +211,13 @@ export class AuthService {
     },
   });
 
-  if (!user) return null;
+  // A JWT can outlive the account it points to (deleted between issuance
+  // and this call) — treat that the same as "not authenticated" rather
+  // than returning null, which every caller (web's apiFetch in particular)
+  // otherwise has to special-case. Returning 401 here lets web's existing
+  // refresh-then-redirect-to-login flow handle it the same as an expired
+  // token, instead of crashing on an unexpected response shape.
+  if (!user) throw new UnauthorizedException('Account no longer exists');
 
   // Never send auth secrets to the client — this endpoint was returning
   // the raw User row, bcrypt hashes and all.
