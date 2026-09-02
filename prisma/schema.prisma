@@ -19,6 +19,10 @@ model User {
   updatedAt         DateTime         @updatedAt
   isBanned          Boolean          @default(false)
   role              UserRole         @default(USER)
+  // Admin-provisioned account, never through normal signup — indistinguishable
+  // from a real user to everyone else, this flag exists purely so admins can
+  // find/manage the accounts they created (e.g. in the admin panel's list).
+  isOrbitOwned      Boolean          @default(false)
   resetToken        String?          @unique
   resetTokenExpires DateTime?
   emailVerified            Boolean   @default(false)
