@@ -1,6 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { Injectable, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Prisma, MemberRole } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { hash } from '../../common/utils/hash.util';
+
+const ORBIT_ACCOUNT_ROLES: MemberRole[] = ['founder', 'investor', 'advisor', 'professional', 'service_provider'];
 
 @Injectable()
 export class AdminService {
@@ -59,18 +62,21 @@ export class AdminService {
   // ==========================================
   // 2. MODERATOR USER REGISTRY
   // ==========================================
-  async listUsers(limit: number, page: number, search?: string) {
+  async listUsers(limit: number, page: number, search?: string, orbitOwned?: boolean) {
     const skip = (page - 1) * limit;
     const trimmedSearch = search?.trim();
 
-    const where: Prisma.UserWhereInput | undefined = trimmedSearch
-      ? {
-          OR: [
-            { email: { contains: trimmedSearch, mode: 'insensitive' } },
-            { profile: { fullName: { contains: trimmedSearch, mode: 'insensitive' } } },
-          ],
-        }
-      : undefined;
+    const where: Prisma.UserWhereInput = {
+      ...(orbitOwned ? { isOrbitOwned: true } : {}),
+      ...(trimmedSearch
+        ? {
+            OR: [
+              { email: { contains: trimmedSearch, mode: 'insensitive' } },
+              { profile: { fullName: { contains: trimmedSearch, mode: 'insensitive' } } },
+            ],
+          }
+        : {}),
+    };
 
     const [users, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
@@ -82,6 +88,7 @@ export class AdminService {
           email: true,
           role: true,
           isBanned: true,
+          isOrbitOwned: true,
           createdAt: true,
           updatedAt: true,
           profile: true // Includes user profile cards automatically
@@ -101,6 +108,63 @@ export class AdminService {
         currentPage: page
       }
     };
+  }
+
+  // ==========================================
+  // 2b. ORBIT-OWNED ACCOUNT PROVISIONING
+  // Admin-created accounts that log in and behave exactly like a real user
+  // (email/password login, can post, etc.) on every client, but skip email
+  // verification and onboarding permanently — set once here, never revisited
+  // by the OTP/onboarding gates that check these same two fields for every
+  // other account. Indistinguishable from a real account to other users;
+  // isOrbitOwned exists only so this list can be found again in the panel.
+  // ==========================================
+  async createOrbitOwnedUser(
+    dto: { email: string; password: string; fullName: string; role: string; headline?: string; bio?: string; location?: string; company?: string },
+    adminId: string,
+  ) {
+    const email = dto.email.trim().toLowerCase();
+    if (!email || !dto.password || !dto.fullName?.trim()) {
+      throw new BadRequestException('Email, password and full name are required');
+    }
+    if (!ORBIT_ACCOUNT_ROLES.includes(dto.role as MemberRole)) {
+      throw new BadRequestException(`Role must be one of: ${ORBIT_ACCOUNT_ROLES.join(', ')}`);
+    }
+
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing) throw new ConflictException('An account with this email already exists');
+
+    const passwordHash = await hash(dto.password);
+
+    const user = await this.prisma.user.create({
+      data: {
+        email,
+        passwordHash,
+        emailVerified: true,
+        isOrbitOwned: true,
+        profile: {
+          create: {
+            fullName: dto.fullName.trim(),
+            role: dto.role as MemberRole,
+            headline: dto.headline?.trim() ?? '',
+            bio: dto.bio?.trim() ?? '',
+            location: dto.location?.trim() ?? '',
+            company: dto.company?.trim() ?? '',
+            onboardingCompleted: true,
+          },
+        },
+      },
+      select: { id: true, email: true, createdAt: true, profile: { select: { fullName: true, role: true } } },
+    });
+
+    await this.logAction(
+      adminId,
+      'ORBIT_USER_CREATED',
+      `Admin created an Orbit-owned account: ${user.email} (${dto.role})`,
+      user.id,
+    );
+
+    return user;
   }
 
   // ==========================================

@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { PrismaService } from '../../prisma/prisma.service';
 import { calculateProfileCompletion } from '../profiles/profile-completion.util';
@@ -62,29 +63,65 @@ export class OnboardingService {
     const roleData = dto.roleProfile?.data ?? {};
     const goals: string[] = dto.goals ?? [];
 
-    await this.prisma.profile.update({
-      where: {
-        id: userId,
-      },
-      data: {
-        fullName: quick.fullName ?? '',
-        headline: quick.headline ?? '',
-        location: quick.location ?? '',
-        company: quick.company ?? '',
-        website: quick.website ?? '',
-        linkedinUrl: quick.linkedinUrl ?? '',
-        skills: fromCsv(quick.skills),
+    // Everything below must succeed or none of it does — without a
+    // transaction, a role-specific upsert failing (e.g. a field type
+    // mismatch) after the Profile update already ran left
+    // onboardingCompleted=true on an account with no role profile row and
+    // no profileCompletion ever calculated, with no way to retry cleanly.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.profile.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          fullName: quick.fullName ?? '',
+          headline: quick.headline ?? '',
+          location: quick.location ?? '',
+          company: quick.company ?? '',
+          website: quick.website ?? '',
+          linkedinUrl: quick.linkedinUrl ?? '',
+          skills: fromCsv(quick.skills),
 
-        role: dto.memberRole as any,
+          role: dto.memberRole as any,
 
-        onboardingGoals: goals,
-        lookingFor: goals,
-        onboardingCompleted: true,
-        onboardingStep: 'completed',
-      },
+          onboardingGoals: goals,
+          lookingFor: goals,
+          onboardingCompleted: true,
+          onboardingStep: 'completed',
+        },
+      });
+
+      await this.upsertRoleProfile(tx, userId, dto.memberRole, roleData, goals);
+
+      const profile = await tx.profile.findUnique({
+        where: { id: userId },
+        include: {
+          founderProfile: true,
+          investorProfile: true,
+          advisorProfile: true,
+          professionalProfile: true,
+          serviceProviderProfile: true,
+        },
+      });
+
+      const completion = calculateProfileCompletion(profile!);
+      await tx.profile.update({
+        where: { id: userId },
+        data: { profileCompletion: completion },
+      });
     });
 
-    switch (dto.memberRole) {
+    return this.prisma.profile.findUnique({ where: { id: userId } });
+  }
+
+  private async upsertRoleProfile(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    memberRole: string,
+    roleData: any,
+    goals: string[],
+  ) {
+    switch (memberRole) {
       case 'founder': {
         const data = {
           startupName: roleData.startupName ?? '',
@@ -100,7 +137,7 @@ export class OnboardingService {
           portfolio: roleData.portfolio ?? [],
           goals,
         };
-        await this.prisma.founderProfile.upsert({
+        await tx.founderProfile.upsert({
           where: { profileId: userId },
           update: data,
           create: { profileId: userId, ...data },
@@ -121,7 +158,7 @@ export class OnboardingService {
           yearsInvestingExperience: roleData.yearsInvestingExperience ?? '',
           goals,
         };
-        await this.prisma.investorProfile.upsert({
+        await tx.investorProfile.upsert({
           where: { profileId: userId },
           update: data,
           create: { profileId: userId, ...data },
@@ -138,7 +175,7 @@ export class OnboardingService {
           mentorshipExperience: roleData.mentorshipExperience ?? '',
           goals,
         };
-        await this.prisma.advisorProfile.upsert({
+        await tx.advisorProfile.upsert({
           where: { profileId: userId },
           update: data,
           create: { profileId: userId, ...data },
@@ -156,7 +193,7 @@ export class OnboardingService {
           specializationOther: roleData.specializationOther ?? '',
           goals,
         };
-        await this.prisma.professionalProfile.upsert({
+        await tx.professionalProfile.upsert({
           where: { profileId: userId },
           update: data,
           create: { profileId: userId, ...data },
@@ -173,7 +210,7 @@ export class OnboardingService {
           clientIndustries: roleData.clientIndustries ?? [],
           goals,
         };
-        await this.prisma.serviceProviderProfile.upsert({
+        await tx.serviceProviderProfile.upsert({
           where: { profileId: userId },
           update: data,
           create: { profileId: userId, ...data },
@@ -183,23 +220,6 @@ export class OnboardingService {
       default:
         break;
     }
-
-    const profile = await this.prisma.profile.findUnique({
-      where: { id: userId },
-      include: {
-        founderProfile: true,
-        investorProfile: true,
-        advisorProfile: true,
-        professionalProfile: true,
-        serviceProviderProfile: true,
-      },
-    });
-
-    const completion = calculateProfileCompletion(profile!);
-    return this.prisma.profile.update({
-      where: { id: userId },
-      data: { profileCompletion: completion },
-    });
   }
 
   async getMatches(role: string, goalsParam: string) {

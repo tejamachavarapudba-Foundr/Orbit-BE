@@ -20,10 +20,23 @@ export class AdminController {
     @Query('limit') limit?: string,
     @Query('page') page?: string,
     @Query('search') search?: string,
+    @Query('orbitOwned') orbitOwned?: string,
   ) {
     const parsedLimit = limit ? parseInt(limit, 10) : 20;
     const parsedPage = page ? parseInt(page, 10) : 1;
-    return this.svc.listUsers(parsedLimit, parsedPage, search);
+    return this.svc.listUsers(parsedLimit, parsedPage, search, orbitOwned === 'true');
+  }
+
+  // 2a. POST /admin/users (Provision an Orbit-owned account — logs in and
+  // behaves like a real user everywhere, but never hits email OTP or
+  // onboarding since both are marked complete at creation time)
+  @Post('users')
+  createOrbitOwnedUser(
+    @Body() dto: { email: string; password: string; fullName: string; role: string; headline?: string; bio?: string; location?: string; company?: string },
+    @Req() req: any,
+  ) {
+    const adminId = req.user.id || req.user.sub;
+    return this.svc.createOrbitOwnedUser(dto, adminId);
   }
 
   // 3. PATCH /admin/users/:id/ban (Toggle ban/unban status)
