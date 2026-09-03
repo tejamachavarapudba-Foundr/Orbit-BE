@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 
 import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
@@ -48,6 +50,17 @@ import { VerificationModule } from './modules/verification/verification.module';
         load: [databaseConfig,jwtConfig] // --- IGNORE ---
     }),
     ScheduleModule.forRoot(),
+    // Global request-rate limiting (protects every route, including any future
+    // ones that forget to add their own guard). Per-route @Throttle() overrides
+    // in controllers like AuthController tighten this further for sensitive
+    // endpoints (login, register, OTP, password reset).
+    ThrottlerModule.forRoot([
+      {
+        name: 'default',
+        ttl: 60_000,
+        limit: 100,
+      },
+    ]),
     // BullModule.forRoot({
     //   redis: {
     //     host: process.env.REDIS_HOST ?? 'localhost',
@@ -86,5 +99,11 @@ import { VerificationModule } from './modules/verification/verification.module';
     VerificationModule,
   ],
   controllers: [AppController],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Post, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -16,10 +17,14 @@ import { Public } from '../../common/decorators/public.decorator';
 export class AuthController {
   constructor(private auth: AuthService) {}
 
-  @Public() @Post('register')
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('register')
   register(@Body() dto: RegisterDto) { return this.auth.register(dto); }
 
-  @Public() @Post('login')
+  @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Post('login')
   login(@Body() dto: LoginDto) { return this.auth.login(dto); }
 
   @Public() @Post('refresh')
@@ -32,7 +37,8 @@ export class AuthController {
   logout(@Body('email')  email: string ) { // Use @Body('email') to get just the string
    return this.auth.logout(email); }
 
-   @Public() 
+   @Public()
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK) // Explicitly returns a 200 status code instead of a 201
   forgotPassword(@Body() dto: ForgotPasswordDto) {
@@ -40,6 +46,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   resetPassword(@Body() dto: ResetPasswordDto) {
@@ -47,6 +54,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 8, ttl: 60_000 } })
   @Post('verify-email-otp')
   @HttpCode(HttpStatus.OK)
   verifyEmailOtp(@Body() dto: VerifyEmailOtpDto) {
@@ -54,6 +62,7 @@ export class AuthController {
   }
 
   @Public()
+  @Throttle({ default: { limit: 3, ttl: 300_000 } })
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
   resendVerification(@Body() dto: ForgotPasswordDto) {
@@ -61,6 +70,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 3, ttl: 300_000 } })
   @Post('phone/send-otp')
   @HttpCode(HttpStatus.OK)
   sendPhoneOtp(@CurrentUser() u: { id: string }, @Body() dto: SendPhoneOtpDto) {
@@ -68,6 +78,7 @@ export class AuthController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Throttle({ default: { limit: 8, ttl: 60_000 } })
   @Post('phone/verify-otp')
   @HttpCode(HttpStatus.OK)
   verifyPhoneOtp(@CurrentUser() u: { id: string }, @Body() dto: VerifyPhoneOtpDto) {
