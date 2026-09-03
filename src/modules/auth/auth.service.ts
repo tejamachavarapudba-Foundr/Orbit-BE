@@ -27,13 +27,14 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const email = dto.email.trim().toLowerCase();
+    const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) throw new ConflictException('Email already in use');
     const passwordHash = await hash(dto.password);
     const verificationToken = generateOtp();
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
+        email,
         passwordHash,
         verificationToken,
         verificationTokenExpires: new Date(Date.now() + OTP_TTL_MS),
@@ -157,7 +158,7 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email.trim().toLowerCase() } });
     if (!user) throw new UnauthorizedException('Invalid credentials');
     const ok = await compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
@@ -170,7 +171,7 @@ export class AuthService {
     }
 
     const result = await this.prisma.user.updateMany({
-      where: { email: email },
+      where: { email: email.trim().toLowerCase() },
       data: { refreshHash: null },
     });
 
