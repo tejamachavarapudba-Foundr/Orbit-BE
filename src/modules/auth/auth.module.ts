@@ -8,6 +8,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { MailModule } from '../mail/mail.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { SmsModule } from '../sms/sms.module';
+import { getRequiredEnv } from '../../common/utils/env.util';
 @Module({
   imports: [
     PrismaModule,
@@ -16,9 +17,8 @@ import { SmsModule } from '../sms/sms.module';
     SmsModule,
     PassportModule,
     JwtModule.register({
-      // FIX: Matches the fallback matrix key matching strategy signature validations
-      secret: process.env.JWT_ACCESS_SECRET ?? 'dev-access',
-      signOptions: { 
+      secret: getRequiredEnv('JWT_ACCESS_SECRET'),
+      signOptions: {
         expiresIn: process.env.JWT_ACCESS_TTL ? `${process.env.JWT_ACCESS_TTL}s` : '900s' 
       },
     })

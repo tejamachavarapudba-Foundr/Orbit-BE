@@ -8,6 +8,7 @@ import { LoginDto } from './dto/login.dto';
 import { MailService } from '../mail/mail.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { SmsService } from '../sms/sms.service';
+import { getRequiredEnv } from '../../common/utils/env.util';
 
 const OTP_TTL_MS = 10 * 60 * 1000;
 const RESET_TTL_MS = 60 * 60 * 1000;
@@ -183,7 +184,7 @@ export class AuthService {
   async refresh(refreshToken: string) {
     try {
       const payload = await this.jwt.verifyAsync(refreshToken, {
-        secret: process.env.JWT_REFRESH_SECRET ?? 'dev-refresh',
+        secret: getRequiredEnv('JWT_REFRESH_SECRET'),
       });
       const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
       if (!user || !user.refreshHash) throw new UnauthorizedException();
@@ -229,12 +230,12 @@ export class AuthService {
   private async issueTokens(sub: string, email: string, role: string) {
     const accessToken = await this.jwt.signAsync(
       { sub, email, role }, // 🟢 Added 'role' to token payload payload context
-      { secret: process.env.JWT_ACCESS_SECRET ?? 'dev-access',
+      { secret: getRequiredEnv('JWT_ACCESS_SECRET'),
         expiresIn: Number(process.env.JWT_ACCESS_TTL ?? 900) },
     );
     const refreshToken = await this.jwt.signAsync(
       { sub, email, role }, // 🟢 Added 'role' here as well
-      { secret: process.env.JWT_REFRESH_SECRET ?? 'dev-refresh',
+      { secret: getRequiredEnv('JWT_REFRESH_SECRET'),
         expiresIn: Number(process.env.JWT_REFRESH_TTL ?? 2592000) },
     );
     await this.prisma.user.update({
