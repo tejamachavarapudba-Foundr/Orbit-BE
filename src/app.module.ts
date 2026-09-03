@@ -4,6 +4,9 @@ import { BullModule } from '@nestjs/bull';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { PrismaThrottlerStorage } from './common/throttler/prisma-throttler.storage';
+import { RateLimitCleanupService } from './common/throttler/rate-limit-cleanup.service';
+import { PrismaService } from './prisma/prisma.service';
 
 import databaseConfig from './config/database.config';
 import jwtConfig from './config/jwt.config';
@@ -54,13 +57,18 @@ import { VerificationModule } from './modules/verification/verification.module';
     // ones that forget to add their own guard). Per-route @Throttle() overrides
     // in controllers like AuthController tighten this further for sensitive
     // endpoints (login, register, OTP, password reset).
-    ThrottlerModule.forRoot([
-      {
-        name: 'default',
-        ttl: 60_000,
-        limit: 100,
-      },
-    ]),
+    //
+    // Storage is backed by Postgres (PrismaThrottlerStorage), not the default
+    // in-memory store: this service runs multiple replicas on Railway, and an
+    // in-process counter never sees a client's full request history once
+    // traffic is load-balanced across them.
+    ThrottlerModule.forRootAsync({
+      inject: [PrismaService],
+      useFactory: (prisma: PrismaService) => ({
+        throttlers: [{ name: 'default', ttl: 60_000, limit: 100 }],
+        storage: new PrismaThrottlerStorage(prisma),
+      }),
+    }),
     // BullModule.forRoot({
     //   redis: {
     //     host: process.env.REDIS_HOST ?? 'localhost',
@@ -104,6 +112,7 @@ import { VerificationModule } from './modules/verification/verification.module';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    RateLimitCleanupService,
   ],
 })
 export class AppModule {}

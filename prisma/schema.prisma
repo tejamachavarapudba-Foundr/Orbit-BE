@@ -1042,3 +1042,14 @@ enum MediaOrientation {
   LANDSCAPE
   SQUARE
 }
+
+// Backs the login/register/OTP rate limiter (see PrismaThrottlerStorage).
+// Reuses the existing Postgres instance instead of adding a new Redis
+// service, since Railway runs multiple app replicas and an in-memory
+// counter doesn't survive being load-balanced across them.
+model RateLimitRecord {
+  key          String    @id
+  hits         Int       @default(1)
+  expiresAt    DateTime
+  blockedUntil DateTime?
+}
