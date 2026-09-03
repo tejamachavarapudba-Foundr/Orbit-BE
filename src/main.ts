@@ -23,6 +23,12 @@ export async function bootstrapApp() {
   if (!cachedServer) {
     const app = await NestFactory.create(AppModule);
 
+    // Railway/Vercel sit in front of this app as a reverse proxy — without
+    // this, Express's req.ip resolves to the proxy's connecting address
+    // (which varies per edge node) instead of the real client IP, silently
+    // breaking anything keyed on it (rate limiting, audit logs).
+    app.getHttpAdapter().getInstance().set('trust proxy', 1);
+
     app.enableCors();
     app.setGlobalPrefix('api');
     app.useGlobalFilters(new HttpErrorFilter());
@@ -40,6 +46,12 @@ export async function bootstrapApp() {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Railway sits in front of this app as a reverse proxy — without this,
+  // Express's req.ip resolves to the proxy's connecting address (which
+  // varies per edge node) instead of the real client IP, silently breaking
+  // anything keyed on it (rate limiting, audit logs).
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   app.enableCors();
 
