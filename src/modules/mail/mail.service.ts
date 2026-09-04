@@ -35,13 +35,13 @@ export class MailService {
     }
   }
 
-  async sendPasswordResetEmail(email: string, resetLink: string) {
+  async sendPasswordResetEmail(email: string, code: string) {
     await this.send(
       email,
       'Reset your Orbit password',
-      `<p>We received a request to reset your Orbit password.</p>
-       <p><a href="${resetLink}">Tap here to choose a new password</a>. This link expires in 1 hour.</p>
-       <p>If you didn't request this, you can safely ignore this email.</p>`,
+      `<p>We received a request to reset your Orbit password. Enter this code in the app to choose a new one.</p>
+       <p style="font-size: 32px; font-weight: 700; letter-spacing: 8px; margin: 24px 0;">${code}</p>
+       <p>This code expires in 10 minutes. If you didn't request this, you can safely ignore this email.</p>`,
     );
   }
 

@@ -23,8 +23,12 @@ model User {
   // from a real user to everyone else, this flag exists purely so admins can
   // find/manage the accounts they created (e.g. in the admin panel's list).
   isOrbitOwned      Boolean          @default(false)
-  resetToken        String?          @unique
+  // A 6-digit OTP, not a unique token — codes are short enough that
+  // collisions across users are plausible, so lookup is always scoped by
+  // email first, then this code is checked against that specific user.
+  resetToken        String?
   resetTokenExpires DateTime?
+  resetAttempts     Int              @default(0)
   emailVerified            Boolean   @default(false)
   verificationToken        String?
   verificationTokenExpires DateTime?

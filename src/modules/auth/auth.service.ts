@@ -1,4 +1,3 @@
-import * as crypto from 'crypto';
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -11,7 +10,6 @@ import { SmsService } from '../sms/sms.service';
 import { getRequiredEnv } from '../../common/utils/env.util';
 
 const OTP_TTL_MS = 10 * 60 * 1000;
-const RESET_TTL_MS = 60 * 60 * 1000;
 const MAX_OTP_ATTEMPTS = 5;
 
 const generateOtp = () => String(Math.floor(100000 + Math.random() * 900000));
@@ -65,11 +63,6 @@ export class AuthService {
     );
 
     return this.issueTokens(user.id, user.email, user.role); // 🟢 Passed user.role here
-  }
-
-  private buildDeepLink(envVar: string, token: string) {
-    const base = process.env[envVar] ?? `startuphouze://${envVar === 'APP_VERIFY_EMAIL_DEEP_LINK' ? 'verify-email' : 'reset-password'}`;
-    return `${base}?token=${token}`;
   }
 
   async verifyEmailOtp(email: string, code: string) {
@@ -223,7 +216,16 @@ export class AuthService {
 
   // Never send auth secrets to the client — this endpoint was returning
   // the raw User row, bcrypt hashes and all.
-  const { passwordHash, refreshHash, resetToken, resetTokenExpires, verificationToken, verificationTokenExpires, ...safeUser } = user;
+  const {
+    passwordHash,
+    refreshHash,
+    resetToken,
+    resetTokenExpires,
+    resetAttempts,
+    verificationToken,
+    verificationTokenExpires,
+    ...safeUser
+  } = user;
   return safeUser;
 }
 
@@ -249,37 +251,35 @@ export class AuthService {
   async forgotPassword(email: string) {
     const genericResponse = {
       success: true,
-      message: 'If an account exists with that email, a password reset link has been sent.',
+      message: 'If an account exists with that email, a reset code has been sent.',
     };
 
     if (!email) {
       throw new BadRequestException('Email is required');
     }
 
-    // 1. Locate user via normalized lowercase matching
     const user = await this.prisma.user.findUnique({
       where: { email: email.toLowerCase().trim() },
     });
 
-    // 2. Security Check: Silently return if user doesn't exist (prevents email harvesting)
+    // Security: silently return if no account exists, so this endpoint
+    // can't be used to check which emails are registered.
     if (!user) {
       return genericResponse;
     }
 
-    // 3. Generate a cryptographically secure hex token and set an expiration date (1 hour)
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpires = new Date(Date.now() + RESET_TTL_MS);
+    // A 6-digit code, not a link — entered directly in the app, same as
+    // email verification. No deep link to fumble through a mail client.
+    const resetToken = generateOtp();
+    const resetTokenExpires = new Date(Date.now() + OTP_TTL_MS);
 
-    // 4. Record the reset token data in the database
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { resetToken, resetTokenExpires },
+      data: { resetToken, resetTokenExpires, resetAttempts: 0 },
     });
 
-    // 5. Construct the deep link back into the Orbit app, and 6. send it
-    const resetLink = this.buildDeepLink('APP_RESET_PASSWORD_DEEP_LINK', resetToken);
     try {
-      await this.mail.sendPasswordResetEmail(user.email, resetLink);
+      await this.mail.sendPasswordResetEmail(user.email, resetToken);
     } catch {
       // already logged inside MailService — a failed send shouldn't leak
       // whether the account exists via a different response shape
@@ -288,10 +288,26 @@ export class AuthService {
     return genericResponse;
   }
 
-  async resetPassword(token: string, newPassword: string) {
-    const user = await this.prisma.user.findUnique({ where: { resetToken: token } });
-    if (!user || !user.resetTokenExpires || user.resetTokenExpires < new Date()) {
-      throw new BadRequestException('This password reset link is invalid or has expired.');
+  async resetPassword(email: string, code: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase().trim() } });
+    if (!user || !user.resetToken) {
+      throw new BadRequestException('This code is invalid or has expired.');
+    }
+
+    if (!user.resetTokenExpires || user.resetTokenExpires < new Date()) {
+      throw new BadRequestException('This code has expired — request a new one.');
+    }
+
+    if (user.resetAttempts >= MAX_OTP_ATTEMPTS) {
+      throw new BadRequestException('Too many incorrect attempts — request a new code.');
+    }
+
+    if (user.resetToken !== code) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { resetAttempts: { increment: 1 } },
+      });
+      throw new BadRequestException('That code is incorrect.');
     }
 
     const passwordHash = await hash(newPassword);
@@ -301,6 +317,7 @@ export class AuthService {
         passwordHash,
         resetToken: null,
         resetTokenExpires: null,
+        resetAttempts: 0,
         // A password reset is a good moment to force re-login everywhere,
         // in case the reset was prompted by a compromised session.
         refreshHash: null,
