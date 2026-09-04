@@ -112,8 +112,8 @@ export class AdminController {
 
   // 6a. GET /admin/projects/incorporation/pending
   @Get('projects/incorporation/pending')
-  listPendingIncorporationVerifications() {
-    return this.svc.listPendingIncorporationVerifications();
+  listPendingIncorporationVerifications(@Query('status') status?: 'pending' | 'approved' | 'rejected') {
+    return this.svc.listPendingIncorporationVerifications(status);
   }
 
   // 6b. PATCH /admin/projects/:id/incorporation/review

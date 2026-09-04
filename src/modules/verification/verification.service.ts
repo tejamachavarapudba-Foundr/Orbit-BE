@@ -90,9 +90,9 @@ export class VerificationService {
     });
   }
 
-  async listPendingFounderVerifications() {
+  async listPendingFounderVerifications(status: 'pending' | 'approved' | 'rejected' = 'pending') {
     return this.prisma.founderVerification.findMany({
-      where: { status: 'pending' },
+      where: { status },
       include: {
         profile: { select: { id: true, fullName: true, avatarUrl: true, headline: true } },
       },
@@ -126,9 +126,9 @@ export class VerificationService {
     return updated;
   }
 
-  async listPendingProfessionalVerifications() {
+  async listPendingProfessionalVerifications(status: 'pending' | 'approved' | 'rejected' = 'pending') {
     return this.prisma.professionalProfile.findMany({
-      where: { verificationStatus: 'pending' },
+      where: { verificationStatus: status },
       include: {
         profile: { select: { id: true, fullName: true, avatarUrl: true, headline: true } },
       },

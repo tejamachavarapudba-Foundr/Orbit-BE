@@ -50,86 +50,37 @@ export class StartupsService {
   // ==========================================
   // 2. CONDITION TO FILTER TRENDING STARTUPS
   // ==========================================
+  // Trending is purely reviews-based: more reviews and a higher average
+  // rating score higher, with the same time-decay (Hacker News style
+  // gravity) applied so recent review activity outranks an old startup
+  // coasting on reviews from months ago. Applications, posts/likes/
+  // comments, team size, and stage no longer factor in at all.
   async findTrending(limit: number = 10) {
-    // 1. Fetch startups using only valid, lowercase schema relation names
     const startups = await this.prisma.project.findMany({
       include: {
         // Summary only — see note in projects.service.ts's list().
         investorSnapshot: { select: { isCompleted: true, completionPercentage: true } },
         owner: { select: { founderVerification: { select: { status: true } } } },
-
-        _count: {
-          select: {
-            applications: true, // Core direct partner requests count
-            members: true,      // Core team assembly count
-            reviews: true       // High-integrity rating review count
-          }
-        },
-        reviews: {
-          select: { rating: true }
-        },
-        posts: {
-          include: {
-            _count: {
-              select: {
-                likes: true,
-                comments: true
-              }
-            }
-          }
-        }
+        _count: { select: { reviews: true } },
+        reviews: { select: { rating: true } }
       }
     });
 
     const now = new Date().getTime();
 
     const scoredStartups = startups.map((startup: any) => {
-      // Extract interaction count variables cleanly
-      const applicationCount = startup._count?.applications || 0;
       const reviewCount = startup._count?.reviews || 0;
-      const memberCount = startup._count?.members || 0;
-
-      // Compute precise rating point values
       const totalRatingSum = startup.reviews?.reduce((sum: number, r: any) => sum + r.rating, 0) || 0;
-      const avgRating = reviewCount > 0 ? (totalRatingSum / reviewCount) : 0;
+      const avgRating = reviewCount > 0 ? totalRatingSum / reviewCount : 0;
 
-      // Extract linked social metrics feed counts
-      let linkedPostLikes = 0;
-      let linkedPostComments = 0;
+      const totalBaseScore = (reviewCount * 15) + (avgRating * 30);
 
-      if (startup.posts && startup.posts.length > 0) {
-        startup.posts.forEach((post: any) => {
-          linkedPostLikes += post._count?.likes || 0;
-          linkedPostComments += post._count?.comments || 0;
-        });
-      }
-
-      // Calculate base engagement weights
-      const validationPoints =
-        (applicationCount * 25) +   // Partner request conversion track (25 pts)
-        (reviewCount * 15) +        // Raw direct user verification reviews (15 pts)
-        (avgRating * 30) +          // Product performance value index (Max 150 pts)
-        (linkedPostLikes * 5) +     // Public interest visibility points (5 pts)
-        (linkedPostComments * 8) +  // Conversation density engagement points (8 pts)
-        (memberCount * 5);          // Team tracking baseline score weight
-
-      // Early-stage visibility multiplier boost (Ideas/MVPs scale up higher)
-      let stageBonusMultiplier = 1.0;
-      const currentStage = (startup.stage || '').toUpperCase();
-      if (currentStage === 'IDEA') stageBonusMultiplier = 1.5;
-      if (currentStage === 'MVP') stageBonusMultiplier = 1.2;
-
-      const totalBaseScore = validationPoints * stageBonusMultiplier;
-
-      // Exponential Time Decay gravity penalty mapping (Hacker News framework)
       const postAgeInHours = Math.abs(now - new Date(startup.createdAt).getTime()) / (1000 * 60 * 60);
       const gravity = 1.8;
-      
-      const decayedTrendingScore = totalBaseScore / Math.pow((postAgeInHours + 2), gravity);
+      const decayedTrendingScore = totalBaseScore / Math.pow(postAgeInHours + 2, gravity);
 
       return {
         ...startup,
-        posts: undefined, // Strips deep arrays from the response payload for a clean look
         reviews: undefined,
         founderVerified: startup.owner?.founderVerification?.status === 'approved',
         owner: undefined,
@@ -138,7 +89,6 @@ export class StartupsService {
       };
     });
 
-    // 2. Sort descending by highest time-decayed trending index calculation
     return scoredStartups
       .sort((a, b) => b.trendingScore - a.trendingScore)
       .slice(0, limit);

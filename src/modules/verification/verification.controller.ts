@@ -61,8 +61,8 @@ export class VerificationController {
 
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Get('founder/pending')
-  listPendingFounderVerifications() {
-    return this.verification.listPendingFounderVerifications();
+  listPendingFounderVerifications(@Query('status') status?: 'pending' | 'approved' | 'rejected') {
+    return this.verification.listPendingFounderVerifications(status);
   }
 
   @UseGuards(JwtAuthGuard, AdminGuard)
@@ -77,8 +77,8 @@ export class VerificationController {
 
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Get('professional/pending')
-  listPendingProfessionalVerifications() {
-    return this.verification.listPendingProfessionalVerifications();
+  listPendingProfessionalVerifications(@Query('status') status?: 'pending' | 'approved' | 'rejected') {
+    return this.verification.listPendingProfessionalVerifications(status);
   }
 
   @UseGuards(JwtAuthGuard, AdminGuard)

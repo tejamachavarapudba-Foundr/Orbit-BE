@@ -376,9 +376,9 @@ export class AdminService {
   // ==========================================
   // 6a. CERTIFICATE OF INCORPORATION REVIEW
   // ==========================================
-  async listPendingIncorporationVerifications() {
+  async listPendingIncorporationVerifications(status: 'pending' | 'approved' | 'rejected' = 'pending') {
     return this.prisma.project.findMany({
-      where: { incorporationVerificationStatus: 'pending' },
+      where: { incorporationVerificationStatus: status },
       select: {
         id: true,
         name: true,
