@@ -225,6 +225,25 @@ export class ProfilesService {
        * Professional
        */
       if (roleProfile?.role === 'professional') {
+        const existingProfessional = await this.prisma.professionalProfile.findUnique({
+          where: { profileId: id },
+          select: { certifications: true, verificationStatus: true },
+        });
+
+        const newCertifications = roleProfile.data?.certifications ?? [];
+        const certsChanged =
+          JSON.stringify(existingProfessional?.certifications ?? []) !== JSON.stringify(newCertifications);
+
+        // No certifications submitted: nothing to review, so status is null
+        // (not "pending"). Certifications changed while non-empty: always
+        // moves to pending, whether that's a first submission, a
+        // resubmission after rejection, or new content added after an
+        // earlier approval — re-review is required either way. Unchanged
+        // certifications leave the existing status untouched.
+        const verificationStatus: 'pending' | null | undefined =
+          newCertifications.length === 0 ? null : certsChanged ? 'pending' : undefined;
+        const clearsReview = verificationStatus !== undefined;
+
         await this.prisma.professionalProfile.upsert({
           where: { profileId: id },
           update: {
@@ -235,9 +254,11 @@ export class ProfilesService {
             resume: roleProfile.data?.resume ?? '',
             specialization: roleProfile.data?.specialization ?? '',
             specializationOther: roleProfile.data?.specializationOther ?? '',
-            certifications: roleProfile.data?.certifications ?? [],
+            certifications: newCertifications,
             experiences: roleProfile.data?.experiences ?? [],
             goals: roleProfile.data?.goals ?? [],
+            ...(verificationStatus !== undefined && { verificationStatus }),
+            ...(clearsReview && { reviewedBy: null, reviewNotes: null, reviewedAt: null }),
           },
           create: {
             profileId: id,
@@ -248,9 +269,10 @@ export class ProfilesService {
             resume: roleProfile.data?.resume ?? '',
             specialization: roleProfile.data?.specialization ?? '',
             specializationOther: roleProfile.data?.specializationOther ?? '',
-            certifications: roleProfile.data?.certifications ?? [],
+            certifications: newCertifications,
             experiences: roleProfile.data?.experiences ?? [],
             goals: roleProfile.data?.goals ?? [],
+            verificationStatus: newCertifications.length === 0 ? null : 'pending',
           },
         });
       }

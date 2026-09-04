@@ -74,4 +74,20 @@ export class VerificationController {
   ) {
     return this.verification.reviewFounderVerification(profileId, req.user.id, dto);
   }
+
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @Get('professional/pending')
+  listPendingProfessionalVerifications() {
+    return this.verification.listPendingProfessionalVerifications();
+  }
+
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @Patch('professional/:profileId/review')
+  reviewProfessionalVerification(
+    @Param('profileId') profileId: string,
+    @Req() req: any,
+    @Body() dto: ReviewFounderVerificationDto,
+  ) {
+    return this.verification.reviewProfessionalVerification(profileId, req.user.id, dto);
+  }
 }

@@ -34,13 +34,12 @@ export class VerificationService {
             submittedAt: profile.founderVerification.createdAt,
           }
         : null,
-      // Investor/professional/advisor/service-provider have no proof of authenticity to
-      // check — "verified" here just means the relevant self-declared fields are filled in.
+      // Investor/advisor/service-provider have no proof of authenticity to
+      // check — "verified" here just means the relevant self-declared fields
+      // are filled in. Professional is the exception: certifications require
+      // an admin to actually review the uploaded file before the badge shows.
       investorVerified: Boolean(profile.company.trim() && profile.website.trim()),
-      professionalVerified: Boolean(
-        profile.professionalProfile?.experienceLevel?.trim() ||
-          (Array.isArray(profile.professionalProfile?.experiences) && profile.professionalProfile.experiences.length > 0),
-      ),
+      professionalVerified: profile.professionalProfile?.verificationStatus === 'approved',
       advisorVerified: Boolean(
         profile.advisorProfile?.yearsExperience?.trim() ||
           (Array.isArray(profile.advisorProfile?.experiences) && profile.advisorProfile.experiences.length > 0),
@@ -120,6 +119,42 @@ export class VerificationService {
         userId: adminId,
         action: 'FOUNDER_VERIFICATION_REVIEWED',
         details: `Founder verification for profile ${profileId} set to ${dto.status}`,
+        targetId: profileId,
+      },
+    });
+
+    return updated;
+  }
+
+  async listPendingProfessionalVerifications() {
+    return this.prisma.professionalProfile.findMany({
+      where: { verificationStatus: 'pending' },
+      include: {
+        profile: { select: { id: true, fullName: true, avatarUrl: true, headline: true } },
+      },
+      orderBy: { updatedAt: 'asc' },
+    });
+  }
+
+  async reviewProfessionalVerification(profileId: string, adminId: string, dto: ReviewFounderVerificationDto) {
+    const existing = await this.prisma.professionalProfile.findUnique({ where: { profileId } });
+    if (!existing) throw new NotFoundException('No professional profile found for this profile');
+
+    const updated = await this.prisma.professionalProfile.update({
+      where: { profileId },
+      data: {
+        verificationStatus: dto.status,
+        reviewedBy: adminId,
+        reviewNotes: dto.reviewNotes ?? '',
+        reviewedAt: new Date(),
+      },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId: adminId,
+        action: 'PROFESSIONAL_VERIFICATION_REVIEWED',
+        details: `Professional verification for profile ${profileId} set to ${dto.status}`,
         targetId: profileId,
       },
     });

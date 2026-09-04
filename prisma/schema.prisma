@@ -174,9 +174,17 @@ model ProfessionalProfile {
   goals              String[]
   specialization     String   @default("")
   specializationOther String  @default("")
+  // Null until certifications are first added — distinct from "pending"
+  // so a professional with no certifications never shows as unreviewed.
+  verificationStatus VerificationStatus?
+  reviewedBy         String?
+  reviewNotes        String?
+  reviewedAt         DateTime?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
   profile            Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([verificationStatus])
 }
 
 model ServiceProviderProfile {
