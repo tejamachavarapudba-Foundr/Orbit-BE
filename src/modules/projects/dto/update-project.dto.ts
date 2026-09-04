@@ -121,4 +121,16 @@ export class UpdateProjectDto {
   @IsOptional()
   @IsString()
   dpiitNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  incorporationDocUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  incorporationDocKey?: string;
+
+  @IsOptional()
+  @IsString()
+  incorporationReason?: string;
 }
