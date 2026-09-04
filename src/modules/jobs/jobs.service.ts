@@ -73,11 +73,12 @@ const allowedRoles = [
   "co_founder",
   "investor",
   "hr",
+  "service_provider",
 ];
 
 if (!allowedRoles.includes(profile.role)) {
   throw new ForbiddenException(
-    "Only founders, co-founders, investors and HR can post jobs.",
+    "Only founders, co-founders, investors, HR and service providers can post jobs.",
   );
 }
 
