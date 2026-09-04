@@ -110,6 +110,23 @@ export class AdminController {
     return this.svc.verifyProject(id, verifyStatus, adminId);
   }
 
+  // 6a. GET /admin/projects/incorporation/pending
+  @Get('projects/incorporation/pending')
+  listPendingIncorporationVerifications() {
+    return this.svc.listPendingIncorporationVerifications();
+  }
+
+  // 6b. PATCH /admin/projects/:id/incorporation/review
+  @Patch('projects/:id/incorporation/review')
+  reviewIncorporationVerification(
+    @Param('id') id: string,
+    @Body() dto: { status: 'approved' | 'rejected'; reviewNotes?: string },
+    @Req() req: any,
+  ) {
+    const adminId = req.user.id || req.user.sub;
+    return this.svc.reviewIncorporationVerification(id, adminId, dto);
+  }
+
 
   // 7. GET /admin/audit-logs (Track system changes for platform security)
   @Get('audit-logs')

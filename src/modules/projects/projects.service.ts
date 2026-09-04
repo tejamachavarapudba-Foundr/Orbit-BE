@@ -112,6 +112,14 @@ export class ProjectsService {
   }
 
   async create(userId: string, dto: any) {
+  const hasIncorporationDoc = Boolean(dto.incorporationDocUrl?.trim());
+  const hasIncorporationReason = Boolean(dto.incorporationReason?.trim());
+  if (!hasIncorporationDoc && !hasIncorporationReason) {
+    throw new BadRequestException(
+      'Provide a Certificate of Incorporation file or a reason before publishing.',
+    );
+  }
+
   return this.prisma.project.create({
     data: {
       name: dto.name,
@@ -154,6 +162,13 @@ export class ProjectsService {
       cinNumber: dto.cinNumber ?? "",
       dpiitNumber: dto.dpiitNumber ?? "",
 
+      incorporationDocUrl: dto.incorporationDocUrl ?? "",
+      incorporationDocKey: dto.incorporationDocKey ?? "",
+      incorporationReason: dto.incorporationReason ?? "",
+      // Content is guaranteed present (checked above), so this always
+      // starts pending — nothing to review is not a state that can happen.
+      incorporationVerificationStatus: 'pending',
+
       owner: {
         connect: {
           id: userId
@@ -178,8 +193,16 @@ export class ProjectsService {
     // Fix enum serialization error (Converts hyphens to underscores but preserves lowercase)
     let workingStage = dto.stage;
     if (workingStage && typeof workingStage === 'string') {
-      workingStage = workingStage.replace('-', '_').toLowerCase(); 
+      workingStage = workingStage.replace('-', '_').toLowerCase();
     }
+
+    // If the incorporation doc/reason is being changed, that's new content
+    // an admin hasn't seen yet — back to pending, same as a fresh
+    // submission, regardless of whatever the project was previously
+    // approved/rejected as.
+    const incorporationChanged =
+      ('incorporationDocUrl' in dto && dto.incorporationDocUrl !== project.incorporationDocUrl) ||
+      ('incorporationReason' in dto && dto.incorporationReason !== project.incorporationReason);
 
     try {
       const updatedProject =
@@ -193,6 +216,12 @@ export class ProjectsService {
             projectType: dto.projectType
               ? (dto.projectType as any)
               : undefined,
+            ...(incorporationChanged && {
+              incorporationVerificationStatus: 'pending',
+              incorporationReviewedBy: null,
+              incorporationReviewNotes: null,
+              incorporationReviewedAt: null,
+            }),
           },
        });
 

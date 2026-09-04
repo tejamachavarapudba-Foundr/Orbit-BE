@@ -373,6 +373,53 @@ export class AdminService {
     }
   }
 
+  // ==========================================
+  // 6a. CERTIFICATE OF INCORPORATION REVIEW
+  // ==========================================
+  async listPendingIncorporationVerifications() {
+    return this.prisma.project.findMany({
+      where: { incorporationVerificationStatus: 'pending' },
+      select: {
+        id: true,
+        name: true,
+        tagline: true,
+        incorporationDocUrl: true,
+        incorporationReason: true,
+        updatedAt: true,
+        owner: { select: { id: true, fullName: true, avatarUrl: true, headline: true } },
+      },
+      orderBy: { updatedAt: 'asc' },
+    });
+  }
+
+  async reviewIncorporationVerification(
+    projectId: string,
+    adminId: string,
+    dto: { status: 'approved' | 'rejected'; reviewNotes?: string },
+  ) {
+    const existing = await this.prisma.project.findUnique({ where: { id: projectId } });
+    if (!existing) throw new NotFoundException('Project not found');
+
+    const updated = await this.prisma.project.update({
+      where: { id: projectId },
+      data: {
+        incorporationVerificationStatus: dto.status,
+        incorporationReviewedBy: adminId,
+        incorporationReviewNotes: dto.reviewNotes ?? '',
+        incorporationReviewedAt: new Date(),
+      },
+    });
+
+    await this.logAction(
+      adminId,
+      'PROJECT_INCORPORATION_REVIEWED',
+      `Certificate of Incorporation for project ${projectId} set to ${dto.status}`,
+      projectId,
+    );
+
+    return updated;
+  }
+
     // ==========================================
   // 7. READABLE SECURITY AUDIT TRACKER
   // ==========================================

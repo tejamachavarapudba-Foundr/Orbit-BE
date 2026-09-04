@@ -286,6 +286,18 @@ model Project {
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
   isVerified       Boolean              @default(false)
+  // Certificate of Incorporation: founder provides a document OR a typed
+  // reason at publish time (one of the two is required). Separate from the
+  // generic isVerified toggle above (a different, pre-existing admin
+  // action) — this is its own submit-then-review workflow, mirroring
+  // founder/professional verification.
+  incorporationDocUrl              String               @default("")
+  incorporationDocKey              String               @default("")
+  incorporationReason              String               @default("")
+  incorporationVerificationStatus  VerificationStatus?
+  incorporationReviewedBy          String?
+  incorporationReviewNotes         String?
+  incorporationReviewedAt          DateTime?
   isInvestorReady  Boolean              @default(false)
   investorSnapshot InvestorSnapshot?
   meetingProposals MeetingProposal[]
@@ -304,6 +316,7 @@ model Project {
   @@index([projectType])
   @@index([isPublished])
   @@index([createdAt])
+  @@index([incorporationVerificationStatus])
 }
 
 model SavedStartup {
