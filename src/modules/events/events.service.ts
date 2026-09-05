@@ -27,6 +27,41 @@ export class EventsService {
     });
   }
 
+  // Real pagination for the public Events feed, as a separate endpoint from
+  // list() above — list() is called unpaginated from web/admin too, so
+  // changing its response shape would break those. Same underlying issue
+  // as Discover/Jobs: events past the 100th newest were invisible with no
+  // way to reach them.
+  //
+  // Also drops list()'s `status: ACTIVE` filter here — the mobile app's
+  // Events screen already has a "Cancelled" filter tab (filterEvents() in
+  // events/utils.ts checks event.status === 'CANCELLED'), but list() never
+  // returns cancelled events at all, so that tab has always shown empty.
+  // Filtering by search/date/RSVP stays client-side on the frontend (as it
+  // already was) — only the "how many at once, and can you page past 100"
+  // part changes.
+  async browse(userId: string, page: number, limit: number) {
+    const where = { isPrivate: false };
+
+    const [events, totalCount] = await this.prisma.$transaction([
+      this.prisma.event.findMany({
+        where,
+        include: {
+          _count: { select: { attendees: true } },
+          host: { select: { id: true, fullName: true, avatarUrl: true } },
+          attendees: { where: { userId }, select: { id: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        relationLoadStrategy: 'join',
+      }),
+      this.prisma.event.count({ where }),
+    ]);
+
+    return { events, totalCount, hasMore: page * limit < totalCount };
+  }
+
   async listForCommunity(communityId: string, userId: string) {
     const membership = await this.prisma.communityMember.findUnique({
       where: { communityId_userId: { communityId, userId } },
@@ -49,6 +84,37 @@ export class EventsService {
       take: 100,
       relationLoadStrategy: 'join',
     });
+  }
+
+  // Same fix as browse() above, scoped to one community. listForCommunity()
+  // stays untouched (also called unpaginated from web).
+  async browseForCommunity(communityId: string, userId: string, page: number, limit: number) {
+    const membership = await this.prisma.communityMember.findUnique({
+      where: { communityId_userId: { communityId, userId } },
+    });
+    if (!membership) {
+      throw new ForbiddenException('You are not a member of this community.');
+    }
+
+    const where = { communityId };
+
+    const [events, totalCount] = await this.prisma.$transaction([
+      this.prisma.event.findMany({
+        where,
+        include: {
+          _count: { select: { attendees: true } },
+          host: { select: { id: true, fullName: true, avatarUrl: true } },
+          attendees: { where: { userId }, select: { id: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        relationLoadStrategy: 'join',
+      }),
+      this.prisma.event.count({ where }),
+    ]);
+
+    return { events, totalCount, hasMore: page * limit < totalCount };
   }
 
   async get(id: string, userId?: string) {

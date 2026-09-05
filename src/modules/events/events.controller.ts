@@ -1,10 +1,13 @@
 // src/modules/events/events.controller.ts
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Request } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 
 // Import both from the same file destination
-import { CreateEventDto, CancelEventDto } from './dto/create-event.dto'; 
+import { CreateEventDto, CancelEventDto } from './dto/create-event.dto';
+
+const parsePage = (page?: string) => Math.max(1, parseInt(page ?? '1', 10) || 1);
+const parseLimit = (limit?: string) => Math.min(50, Math.max(1, parseInt(limit ?? '20', 10) || 20));
 
 @UseGuards(JwtAuthGuard)
 @Controller('events')
@@ -16,10 +19,25 @@ export class EventsController {
     return this.svc.list(req.user.id);
   }
 
-  // Declared before ':id' so "community" isn't swallowed as an :id value.
+  // Declared before ':id' so "browse"/"community" aren't swallowed as an :id value.
+  @Get('browse')
+  browse(@Request() req: any, @Query('page') page?: string, @Query('limit') limit?: string) {
+    return this.svc.browse(req.user.id, parsePage(page), parseLimit(limit));
+  }
+
   @Get('community/:communityId')
   listForCommunity(@Param('communityId') communityId: string, @Request() req: any) {
     return this.svc.listForCommunity(communityId, req.user.id);
+  }
+
+  @Get('community/:communityId/browse')
+  browseForCommunity(
+    @Param('communityId') communityId: string,
+    @Request() req: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.svc.browseForCommunity(communityId, req.user.id, parsePage(page), parseLimit(limit));
   }
 
   @Get(':id')
