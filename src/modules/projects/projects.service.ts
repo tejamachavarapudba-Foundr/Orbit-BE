@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service'; // Adjust relative path based on your folder setup
-import { MemberRole, ApplicationStatus, JobApplicationStatus, NotificationType } from '@prisma/client'; 
+import { MemberRole, ApplicationStatus, JobApplicationStatus, NotificationType, Prisma, ProjectStage } from '@prisma/client';
 import { StorageService } from '../storage/storage.service';
 import { StorageType } from '../storage/enums/storage-type.enum';
 
@@ -46,6 +46,72 @@ export class ProjectsService {
       likedBy: undefined,
       viewedBy: undefined,
     }));
+  }
+
+  // Real pagination + server-side search/stage/type filtering for the
+  // Projects & startups screen, as a separate endpoint from list() above —
+  // list() is called unpaginated from web/admin too, so changing its
+  // response shape would break those. Same fix as Discover/Jobs/Events:
+  // list()'s capped 100 with search/filtering done entirely client-side
+  // meant anything past the 100th newest project was invisible and
+  // unsearchable, not just a perf issue.
+  async browse(userId: string, page: number, limit: number, query?: string, stage?: string, projectType?: string) {
+    const searchTerm = query?.trim();
+
+    const where: Prisma.ProjectWhereInput = {
+      ...(stage && stage !== 'all' ? { stage: stage as ProjectStage } : {}),
+      ...(projectType && projectType !== 'all' ? { projectType } : {}),
+      // name/tagline/description/location cover the common searches —
+      // techStack/lookingFor/industryTags are string arrays, and
+      // Postgres/Prisma can't do substring matching inside array elements
+      // without raw SQL, so exact-tag search on those (previously done
+      // client-side) isn't included here.
+      ...(searchTerm
+        ? {
+            OR: [
+              { name: { contains: searchTerm, mode: 'insensitive' } },
+              { tagline: { contains: searchTerm, mode: 'insensitive' } },
+              { description: { contains: searchTerm, mode: 'insensitive' } },
+              { location: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const [projects, totalCount] = await this.prisma.$transaction([
+      this.prisma.project.findMany({
+        where,
+        include: {
+          investorSnapshot: { select: { isCompleted: true, completionPercentage: true } },
+          owner: { select: { founderVerification: { select: { status: true } } } },
+          _count: { select: { likedBy: true, members: true } },
+          likedBy: userId ? { where: { userId }, select: { id: true } } : false,
+          viewedBy: userId ? { where: { userId }, select: { id: true } } : false,
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        relationLoadStrategy: 'join',
+      }),
+      this.prisma.project.count({ where }),
+    ]);
+
+    return {
+      projects: projects.map((project: any) => ({
+        ...project,
+        founderVerified: project.owner?.founderVerification?.status === 'approved',
+        owner: undefined,
+        likeCount: project._count?.likedBy ?? 0,
+        teamMemberCount: project._count?.members ?? 0,
+        isLikedByMe: Boolean(project.likedBy?.length),
+        isViewedByMe: Boolean(project.viewedBy?.length),
+        _count: undefined,
+        likedBy: undefined,
+        viewedBy: undefined,
+      })),
+      totalCount,
+      hasMore: page * limit < totalCount,
+    };
   }
 
   async listReels(userId: string, cursor?: string, limit = 10) {

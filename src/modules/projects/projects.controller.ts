@@ -26,6 +26,22 @@ export class ProjectsController {
     return this.svc.listReels(userId, cursor, parsedLimit);
   }
 
+  // Same reasoning — must stay above @Get(':id').
+  @Get('browse')
+  browse(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('query') query?: string,
+    @Query('stage') stage?: string,
+    @Query('projectType') projectType?: string,
+  ) {
+    const userId = req.user.id || req.user.sub;
+    const pageNum = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit ?? '20', 10) || 20));
+    return this.svc.browse(userId, pageNum, limitNum, query, stage, projectType);
+  }
+
   @Post()
   create(@Body() dto: any, @Req() req: any) {
     const userId = req.user.id || req.user.sub;
