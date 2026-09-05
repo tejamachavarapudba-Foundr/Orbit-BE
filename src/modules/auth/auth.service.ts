@@ -55,10 +55,7 @@ export class AuthService {
       `Thanks for choosing Orbit, ${dto.fullName.split(' ')[0]} — let's help you build the right connections. Complete your profile to get discovered.`,
     );
 
-    const tokens = await this.issueTokens(user.id, user.email, user.role); // 🟢 Passed user.role here
-    // Returning the full profile here saves the client a second /auth/me
-    // round trip immediately after registering — same data, one request.
-    return { ...tokens, user: await this.me(user.id) };
+    return this.issueTokens(user.id, user.email, user.role); // 🟢 Passed user.role here
   }
 
   async verifyEmailOtp(email: string, code: string) {
@@ -151,9 +148,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('Invalid credentials');
     const ok = await compare(dto.password, user.passwordHash);
     if (!ok) throw new UnauthorizedException('Invalid credentials');
-    const tokens = await this.issueTokens(user.id, user.email, user.role); // 🟢 Passed user.role here
-    // Same as register() — save the client the extra /auth/me round trip.
-    return { ...tokens, user: await this.me(user.id) };
+    return this.issueTokens(user.id, user.email, user.role); // 🟢 Passed user.role here
   }
 
   async logout(email: string) {
