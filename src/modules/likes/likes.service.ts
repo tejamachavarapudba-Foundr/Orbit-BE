@@ -9,7 +9,7 @@ export class LikesService {
   async list(postId: string) {
     return this.prisma.postLike.findMany({
       where: { postId },
-      include: { user: true }, 
+      include: { user: { omit: { fcmTokens: true, resumeKey: true } } },
     });
   }
 

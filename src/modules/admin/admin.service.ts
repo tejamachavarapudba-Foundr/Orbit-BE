@@ -91,7 +91,7 @@ export class AdminService {
           isOrbitOwned: true,
           createdAt: true,
           updatedAt: true,
-          profile: true // Includes user profile cards automatically
+          profile: { omit: { fcmTokens: true, resumeKey: true } } // Includes user profile cards automatically
         },
         orderBy: { createdAt: 'desc' }
       }),

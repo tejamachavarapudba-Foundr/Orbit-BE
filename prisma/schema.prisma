@@ -42,6 +42,10 @@ model User {
   savedStartups     SavedStartup[]
   likedStartups     StartupLike[]
   viewedStartups    StartupView[]
+
+  @@index([role])
+  @@index([isBanned])
+  @@index([isOrbitOwned])
 }
 
 model Profile {
@@ -317,6 +321,7 @@ model Project {
   @@index([isPublished])
   @@index([createdAt])
   @@index([incorporationVerificationStatus])
+  @@index([name])
 }
 
 model SavedStartup {
@@ -328,6 +333,10 @@ model SavedStartup {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, projectId])
+  // Same reasoning as StartupLike.projectId below — projectId-only lookups
+  // (e.g. counting savers per project) aren't served by the userId-leading
+  // compound unique.
+  @@index([projectId])
 }
 
 model StartupLike {
@@ -354,6 +363,7 @@ model StartupView {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, projectId])
+  @@index([projectId])
 }
 
 model ProjectReview {
@@ -410,6 +420,10 @@ model Conversation {
   messages        Message[]
 
   @@unique([userAId, userBId])
+  // Chat list/lookup queries OR across both sides ({userAId: me} OR
+  // {userBId: me}) — the compound unique only serves the userAId branch.
+  @@index([userAId])
+  @@index([userBId])
 }
 
 model Message {
@@ -577,6 +591,9 @@ model Event {
   invites            EventInvite[]
 
   @@index([communityId])
+  // Public feed (list/browse) filters isPrivate=false and sorts by
+  // createdAt — this compound index serves both directly.
+  @@index([isPrivate, createdAt])
 }
 
 model EventAttendee {
@@ -809,6 +826,9 @@ model JobApplication {
   job            Job                  @relation(fields: [jobId], references: [id], onDelete: Cascade)
 
   @@unique([jobId, applicantId])
+  // myApplications() filters by applicantId alone — not served by the
+  // jobId-leading compound unique.
+  @@index([applicantId])
 }
 
 model Notification {

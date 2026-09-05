@@ -388,7 +388,7 @@ if (!allowedRoles.includes(profile.role)) {
   async myPosts(posterId: string) {
     return this.prisma.job.findMany({
       where: { posterId },
-      include: { applications: { include: { applicant: true } } },
+      include: { applications: { include: { applicant: { omit: { fcmTokens: true, resumeKey: true } } } } },
       orderBy: { createdAt: 'desc' },
     });
   }

@@ -305,6 +305,9 @@ export class ProjectsService {
                 },
               },
            },
+           // Only .id is used below — no need to pull passwordHash,
+           // refreshHash, or any other column for every investor/advisor.
+           select: { id: true },
           });
 
         await this.notificationsService.createBulkNotification(
@@ -452,7 +455,7 @@ export class ProjectsService {
         projectId: projectId,
         ...(role ? { role: role as string } : {})
       },
-      include: { applicant: true }
+      include: { applicant: { omit: { fcmTokens: true, resumeKey: true } } }
     });
 
     const jobEmployees = await this.prisma.jobApplication.findMany({
@@ -464,7 +467,7 @@ export class ProjectsService {
         }
       },
       include: {
-        applicant: true,
+        applicant: { omit: { fcmTokens: true, resumeKey: true } },
         job: true
       }
     });
@@ -622,7 +625,7 @@ export class ProjectsService {
             investorSnapshot: { select: { isCompleted: true, completionPercentage: true } },
             members: {
               include: {
-                user: true,
+                user: { omit: { fcmTokens: true, resumeKey: true } },
               },
             },
           },

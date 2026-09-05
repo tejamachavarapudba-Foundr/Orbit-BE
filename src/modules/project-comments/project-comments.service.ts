@@ -8,7 +8,7 @@ export class ProjectCommentsService {
   async list(projectId: string) {
     return this.prisma.projectComment.findMany({
       where: { projectId },
-      include: { author: true },
+      include: { author: { omit: { fcmTokens: true, resumeKey: true } } },
       orderBy: { createdAt: 'asc' },
     });
   }
@@ -29,7 +29,7 @@ export class ProjectCommentsService {
           author: { connect: { id: userId } },
           ...(dto.parentId ? { parent: { connect: { id: dto.parentId } } } : {}),
         },
-        include: { author: true },
+        include: { author: { omit: { fcmTokens: true, resumeKey: true } } },
       });
     } catch (error: any) {
       if (error.code === 'P2025') {

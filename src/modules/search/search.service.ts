@@ -86,7 +86,7 @@ export class SearchService {
             }
           ]
         },
-        include: { profile: true },
+        include: { profile: { omit: { fcmTokens: true, resumeKey: true } } },
         take: limit,
       });
     }
@@ -172,7 +172,7 @@ export class SearchService {
             }
           ]
         },
-        include: { profile: true },
+        include: { profile: { omit: { fcmTokens: true, resumeKey: true } } },
         take: limit,
       }),
       this.prisma.project.findMany({

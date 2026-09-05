@@ -101,7 +101,7 @@ export class StartupsService {
     const startup = await this.prisma.project.findUnique({
       where: { id },
       include: {
-        owner: { include: { founderVerification: true } }, // Includes the founder profile details
+        owner: { include: { founderVerification: true }, omit: { fcmTokens: true, resumeKey: true } }, // Includes the founder profile details
         applications: true, // Includes partner applications
         posts: true,        // Includes social updates feed
         reviews: true,      // Includes 1-5 star ratings
@@ -111,7 +111,7 @@ export class StartupsService {
 
         members: {          // Fixes: Unknown field ProjectMember
           include: {
-            user: true      // Fetches the user profile for each team member
+            user: { omit: { fcmTokens: true, resumeKey: true } }  // Fetches the user profile for each team member
           }
         }
       }

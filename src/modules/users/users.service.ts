@@ -11,7 +11,7 @@ export class UsersService {
   // rather than the previous fully-unbounded findMany.
   async findAll() {
     return this.prisma.user.findMany({
-      select: { id: true, email: true, profile: true, createdAt: true },
+      select: { id: true, email: true, profile: { omit: { fcmTokens: true, resumeKey: true } }, createdAt: true },
       take: 200,
       orderBy: { createdAt: 'desc' },
     });
@@ -19,7 +19,7 @@ export class UsersService {
   async findOne(id: string) {
     const user = await this.prisma.user.findUnique({
       where: { id },
-      select: { id: true, email: true, profile: true, createdAt: true },
+      select: { id: true, email: true, profile: { omit: { fcmTokens: true, resumeKey: true } }, createdAt: true },
     });
     if (!user) throw new NotFoundException();
     return user;

@@ -19,9 +19,9 @@ export class PostsService {
       where: userId ? { notInterestedBy: { none: { userId } } } : undefined,
       include: {
         media: true,
-        author: true,
+        author: { omit: { fcmTokens: true, resumeKey: true } },
         likes: true,
-        comments: { include: { author: true } },
+        comments: { include: { author: { omit: { fcmTokens: true, resumeKey: true } } } },
      },
        orderBy: {
        createdAt: "desc",
@@ -72,9 +72,9 @@ export class PostsService {
         post: {
           include: {
             media: true,
-            author: true,
+            author: { omit: { fcmTokens: true, resumeKey: true } },
             likes: true,
-            comments: { include: { author: true } },
+            comments: { include: { author: { omit: { fcmTokens: true, resumeKey: true } } } },
           },
         },
       },
@@ -104,9 +104,9 @@ export class PostsService {
     },
     include: {
       media: true,
-      author: true,
+      author: { omit: { fcmTokens: true, resumeKey: true } },
       likes: true,
-      comments: { include: { author: true } },
+      comments: { include: { author: { omit: { fcmTokens: true, resumeKey: true } } } },
     },
   });
 
@@ -201,9 +201,9 @@ export class PostsService {
 
     include: {
       media: true,
-      author: true,
+      author: { omit: { fcmTokens: true, resumeKey: true } },
       likes: true,
-      comments: { include: { author: true } },
+      comments: { include: { author: { omit: { fcmTokens: true, resumeKey: true } } } },
     },
   });
 }
@@ -230,9 +230,9 @@ export class PostsService {
         },
         include: {
           media: true,
-          author: true,
+          author: { omit: { fcmTokens: true, resumeKey: true } },
           likes: true,
-          comments: { include: { author: true } },
+          comments: { include: { author: { omit: { fcmTokens: true, resumeKey: true } } } },
         },
       });
     } catch (error: any) {

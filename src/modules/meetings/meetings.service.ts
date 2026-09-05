@@ -313,8 +313,8 @@ export class MeetingsService {
     message?: string,
   ) {
     const [organizer, invitees] = await Promise.all([
-      this.prisma.profile.findUnique({ where: { id: organizerId }, include: { user: true } }),
-      this.prisma.profile.findMany({ where: { id: { in: inviteeIds } }, include: { user: true } }),
+      this.prisma.profile.findUnique({ where: { id: organizerId }, include: { user: { select: { email: true } } } }),
+      this.prisma.profile.findMany({ where: { id: { in: inviteeIds } }, include: { user: { select: { email: true } } } }),
     ]);
     if (!organizer) throw new NotFoundException('Organizer profile not found');
 
