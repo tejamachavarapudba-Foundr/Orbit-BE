@@ -13,6 +13,8 @@ import { randomUUID } from 'crypto';
 
 import { extname } from 'path';
 
+import sharp from 'sharp';
+
 import { StorageType } from './enums/storage-type.enum';
 
 import { UploadResult } from './interfaces/upload-result.interface';
@@ -91,8 +93,46 @@ export class StorageService {
   private generateFilename(
     originalName: string,
     prefix?: string,
+    extensionOverride?: string,
   ) {
-    return `${prefix ?? randomUUID()}${extname(originalName)}`;
+    return `${prefix ?? randomUUID()}${extensionOverride ?? extname(originalName)}`;
+  }
+
+  // Longest side any uploaded image is resized to before storage — well
+  // above anything a screen actually displays, but far below what a modern
+  // phone camera captures raw (12-48MP originals routinely run 4000px+ and
+  // several MB for content nothing ever renders larger than a few hundred
+  // px). Never upscales a smaller source image.
+  private static readonly MAX_IMAGE_DIMENSION = 2000;
+  private static readonly IMAGE_WEBP_QUALITY = 82;
+
+  // Verification documents (StorageType.DOCUMENT) are excluded even though
+  // they can be images — those are legal/administrative artifacts (e.g. a
+  // photographed certificate) where preserving exactly what was submitted
+  // matters more than shaving off size.
+  private shouldOptimizeImage(file: Express.Multer.File, type: StorageType) {
+    return type !== StorageType.DOCUMENT && file.mimetype.startsWith('image/');
+  }
+
+  // Resize -> compress -> WebP, all in one pass. Runs before the file ever
+  // reaches Supabase, so every consumer downstream (client caches, the CDN
+  // Supabase already fronts public buckets with) serves the small version —
+  // there's no "original" copy sitting around inflating storage or transfer.
+  private async optimizeImage(file: Express.Multer.File): Promise<void> {
+    const optimized = await sharp(file.buffer)
+      .rotate() // Applies EXIF orientation, then strips it — avoids sideways photos.
+      .resize({
+        width: StorageService.MAX_IMAGE_DIMENSION,
+        height: StorageService.MAX_IMAGE_DIMENSION,
+        fit: 'inside',
+        withoutEnlargement: true,
+      })
+      .webp({ quality: StorageService.IMAGE_WEBP_QUALITY })
+      .toBuffer();
+
+    file.buffer = optimized;
+    file.mimetype = 'image/webp';
+    file.size = optimized.length;
   }
 
   private buildPath(
@@ -283,9 +323,14 @@ export class StorageService {
     
     this.validate(file, type);
 
+    const shouldOptimize = this.shouldOptimizeImage(file, type);
+    if (shouldOptimize) {
+      await this.optimizeImage(file);
+    }
+
     const bucket = this.getBucket(type);
 
-    const filename = this.generateFilename(file.originalname);
+    const filename = this.generateFilename(file.originalname, undefined, shouldOptimize ? '.webp' : undefined);
 
     const path = this.buildPath(entityId ?? type, filename);
 
