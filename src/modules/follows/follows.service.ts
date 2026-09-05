@@ -22,6 +22,7 @@ export class FollowsService {
       include: {
         follower: { select: this.profileCard },
       },
+      take: 500,
     });
     return connections.map((c) => c.follower);
   }
@@ -33,6 +34,7 @@ export class FollowsService {
       include: {
         following: { select: this.profileCard },
       },
+      take: 500,
     });
     return connections.map((c) => c.following);
   }

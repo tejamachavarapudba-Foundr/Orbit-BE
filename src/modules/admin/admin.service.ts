@@ -389,6 +389,7 @@ export class AdminService {
         owner: { select: { id: true, fullName: true, avatarUrl: true, headline: true } },
       },
       orderBy: { updatedAt: 'asc' },
+      take: 200,
     });
   }
 
@@ -503,8 +504,8 @@ export class AdminService {
       meetingBreakdown,
       eventBreakdown,
     ] = await Promise.all([
-      this.prisma.user.findMany({ where: { createdAt: { gte: since } }, select: { createdAt: true } }),
-      this.prisma.post.findMany({ where: { createdAt: { gte: since } }, select: { createdAt: true } }),
+      this.prisma.user.findMany({ where: { createdAt: { gte: since } }, select: { createdAt: true }, take: 50_000 }),
+      this.prisma.post.findMany({ where: { createdAt: { gte: since } }, select: { createdAt: true }, take: 50_000 }),
       this.prisma.profile.groupBy({ by: ['role'], _count: { id: true } }),
       this.prisma.founderVerification.groupBy({ by: ['status'], _count: { id: true } }),
       this.prisma.profile.count({ where: { identityVerified: true } }),

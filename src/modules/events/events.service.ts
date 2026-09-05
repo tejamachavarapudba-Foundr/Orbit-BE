@@ -282,6 +282,7 @@ export class EventsService {
         },
       },
       orderBy: { createdAt: 'desc' }, // Newest sign-ups first
+      take: 1000,
     });
 
     // 3. Map the data to return a direct array of profiles for clean frontend rendering

@@ -196,6 +196,7 @@ export class MessagesService {
       orderBy: {
         createdAt: 'desc',
       },
+      take: 200,
     });
   }
 }

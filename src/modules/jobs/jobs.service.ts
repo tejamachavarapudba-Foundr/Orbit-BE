@@ -381,6 +381,7 @@ if (!allowedRoles.includes(profile.role)) {
       where: { applicantId },
       include: { job: true },
       orderBy: { createdAt: 'desc' },
+      take: 300,
     });
   }
 
@@ -388,46 +389,73 @@ if (!allowedRoles.includes(profile.role)) {
   async myPosts(posterId: string) {
     return this.prisma.job.findMany({
       where: { posterId },
-      include: { applications: { include: { applicant: { omit: { fcmTokens: true, resumeKey: true } } } } },
+      include: {
+        applications: {
+          include: { applicant: { omit: { fcmTokens: true, resumeKey: true } } },
+          orderBy: { createdAt: 'desc' },
+          take: 500,
+        },
+      },
       orderBy: { createdAt: 'desc' },
+      take: 200,
     });
   }
 
   // 10. GET /jobs/mine/analytics (FOUNDER / HR VIEW)
+  // Aggregated in the DB via groupBy rather than loading every application
+  // row for every job a founder has ever posted into memory to count them
+  // in JS — a popular job can have far more applicants than makes sense to
+  // pull over the wire just to add up statuses.
   async myAnalytics(posterId: string) {
     const jobs = await this.prisma.job.findMany({
       where: { posterId },
-      include: { applications: true },
+      select: { id: true, heading: true },
     });
+
+    if (jobs.length === 0) {
+      return { totalPosts: 0, totalApplications: 0, accepted: 0, rejected: 0, pending: 0, onboardCount: 0, perJob: [] };
+    }
+
+    const jobIds = jobs.map((job) => job.id);
+    const statusCounts = await this.prisma.jobApplication.groupBy({
+      by: ['jobId', 'status'],
+      where: { jobId: { in: jobIds } },
+      _count: { _all: true },
+    });
+
+    const countsByJob = new Map<string, Partial<Record<JobApplicationStatus, number>>>();
+    for (const row of statusCounts) {
+      const existing = countsByJob.get(row.jobId) ?? {};
+      existing[row.status] = row._count._all;
+      countsByJob.set(row.jobId, existing);
+    }
 
     let totalApplications = 0;
     let accepted = 0;
     let rejected = 0;
     let pending = 0;
 
-    for (const job of jobs) {
-      for (const application of job.applications) {
-        totalApplications += 1;
-        if (application.status === JobApplicationStatus.accepted) accepted += 1;
-        else if (application.status === JobApplicationStatus.rejected) rejected += 1;
-        else pending += 1;
-      }
-    }
+    const perJob = jobs.map((job) => {
+      const counts = countsByJob.get(job.id) ?? {};
+      const jobAccepted = counts[JobApplicationStatus.accepted] ?? 0;
+      const jobRejected = counts[JobApplicationStatus.rejected] ?? 0;
+      const jobPending = counts[JobApplicationStatus.pending] ?? 0;
+      const jobTotal = jobAccepted + jobRejected + jobPending;
 
-    return {
-      totalPosts: jobs.length,
-      totalApplications,
-      accepted,
-      rejected,
-      pending,
-      onboardCount: accepted,
-      perJob: jobs.map((job) => ({
+      totalApplications += jobTotal;
+      accepted += jobAccepted;
+      rejected += jobRejected;
+      pending += jobPending;
+
+      return {
         jobId: job.id,
         heading: job.heading,
-        applicationCount: job.applications.length,
-        accepted: job.applications.filter((a) => a.status === JobApplicationStatus.accepted).length,
-        rejected: job.applications.filter((a) => a.status === JobApplicationStatus.rejected).length,
-      })),
-    };
+        applicationCount: jobTotal,
+        accepted: jobAccepted,
+        rejected: jobRejected,
+      };
+    });
+
+    return { totalPosts: jobs.length, totalApplications, accepted, rejected, pending, onboardCount: accepted, perJob };
   }
 }

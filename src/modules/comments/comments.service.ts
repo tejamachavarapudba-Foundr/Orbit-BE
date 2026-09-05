@@ -8,7 +8,9 @@ export class CommentsService {
   async list(postId: string) {
     return this.prisma.postComment.findMany({ // Changed to postComment
       where: { postId },
-      include: { author: { omit: { fcmTokens: true, resumeKey: true } } }
+      include: { author: { omit: { fcmTokens: true, resumeKey: true } } },
+      orderBy: { createdAt: 'asc' },
+      take: 500,
     });
   }
 

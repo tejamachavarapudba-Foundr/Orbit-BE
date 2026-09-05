@@ -42,6 +42,7 @@ export class CommunitiesService {
       where: { members: { some: { userId } } },
       include: { _count: { select: { members: true } } },
       orderBy: { createdAt: 'desc' },
+      take: 300,
     });
   }
 

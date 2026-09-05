@@ -10,6 +10,7 @@ export class ProjectCommentsService {
       where: { projectId },
       include: { author: { omit: { fcmTokens: true, resumeKey: true } } },
       orderBy: { createdAt: 'asc' },
+      take: 500,
     });
   }
 

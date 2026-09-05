@@ -68,6 +68,7 @@ export class PostsService {
     const saved = await this.prisma.savedPost.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
+      take: 200,
       include: {
         post: {
           include: {

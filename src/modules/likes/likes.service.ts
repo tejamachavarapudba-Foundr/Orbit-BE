@@ -10,6 +10,8 @@ export class LikesService {
     return this.prisma.postLike.findMany({
       where: { postId },
       include: { user: { omit: { fcmTokens: true, resumeKey: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
     });
   }
 

@@ -537,6 +537,7 @@ export class MeetingsService {
         where: { status: 'completed', proposal: { OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] } },
         include: { proposal: { include: proposalPeopleInclude }, joins: true },
         orderBy: { confirmedAt: 'desc' },
+        take: 300,
       });
       return meetings.map((m) => this.hideMeetLink(m));
     }
@@ -546,10 +547,14 @@ export class MeetingsService {
         this.prisma.meeting.findMany({
           where: { status: 'cancelled', proposal: { OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] } },
           include: { proposal: { include: proposalPeopleInclude }, joins: true },
+          orderBy: { cancelledAt: 'desc' },
+          take: 300,
         }),
         this.prisma.meetingProposal.findMany({
           where: { status: { in: ['declined', 'cancelled'] }, OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] },
           include: proposalPeopleInclude,
+          orderBy: { updatedAt: 'desc' },
+          take: 300,
         }),
       ]);
       return { meetings: meetings.map((m) => this.hideMeetLink(m)), proposals };
@@ -561,11 +566,13 @@ export class MeetingsService {
         where: { status: 'upcoming', proposal: { OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] } },
         include: { proposal: { include: proposalPeopleInclude }, joins: true },
         orderBy: { confirmedAt: 'asc' },
+        take: 300,
       }),
       this.prisma.meetingProposal.findMany({
         where: { status: 'pending', OR: [{ organizerId: profileId }, { invitees: { some: { userId: profileId } } }] },
         include: proposalPeopleInclude,
         orderBy: { createdAt: 'desc' },
+        take: 300,
       }),
     ]);
 

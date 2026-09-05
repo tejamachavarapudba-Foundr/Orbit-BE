@@ -97,6 +97,7 @@ export class VerificationService {
         profile: { select: { id: true, fullName: true, avatarUrl: true, headline: true } },
       },
       orderBy: { createdAt: 'asc' },
+      take: 200,
     });
   }
 
@@ -133,6 +134,7 @@ export class VerificationService {
         profile: { select: { id: true, fullName: true, avatarUrl: true, headline: true } },
       },
       orderBy: { updatedAt: 'asc' },
+      take: 200,
     });
   }
 

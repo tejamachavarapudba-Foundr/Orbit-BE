@@ -57,6 +57,13 @@ export class StartupsService {
   // comments, team size, and stage no longer factor in at all.
   async findTrending(limit: number = 10) {
     const startups = await this.prisma.project.findMany({
+      // Unpublished drafts shouldn't surface as "trending", and the decay
+      // formula below scores almost entirely on recency (createdAt), so a
+      // capped, newest-first pool can't change the top-N result in
+      // practice while avoiding a genuine full-table scan on every call.
+      where: { isPublished: true },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
       include: {
         // Summary only — see note in projects.service.ts's list().
         investorSnapshot: { select: { isCompleted: true, completionPercentage: true } },
@@ -187,6 +194,7 @@ export class StartupsService {
       orderBy: {
         createdAt: "desc",
       },
+      take: 200,
     });
 
     return startups.map((startup: any) => ({

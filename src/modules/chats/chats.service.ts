@@ -26,7 +26,9 @@ export class ChatsService {
           take: 1,
           orderBy: { createdAt: 'desc' }
         }
-      }
+      },
+      orderBy: { lastMessageAt: 'desc' },
+      take: 300,
     });
 
     return chats.map((chat) => this.withArchivedFlag(chat, userId));
@@ -58,10 +60,13 @@ export class ChatsService {
     const chat = await this.prisma.conversation.findUnique({
       where: { id },
       include: {
+        // The actual message thread is fetched separately (GET /messages,
+        // already cursor-paginated) — nothing reads this beyond a preview,
+        // same shape as list() below, so it was loading the entire message
+        // history of every conversation on every open for no reason.
         messages: {
-          orderBy: {
-            createdAt: 'asc' // Sorts chat history from oldest to newest
-          }
+          take: 1,
+          orderBy: { createdAt: 'desc' }
         }
       }
     });

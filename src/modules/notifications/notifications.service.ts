@@ -15,6 +15,7 @@ export class NotificationsService {
     return this.prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' }, // Newest notifications first
+      take: 200,
     });
   }
 

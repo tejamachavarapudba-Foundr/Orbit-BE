@@ -109,6 +109,7 @@ export class ConnectionRequestsService {
       orderBy: {
         createdAt: 'desc',
       },
+      take: 300,
     });
   }
 
@@ -131,6 +132,7 @@ export class ConnectionRequestsService {
       orderBy: {
         createdAt: 'desc',
       },
+      take: 300,
     });
   }
 
@@ -481,6 +483,7 @@ export class ConnectionRequestsService {
     orderBy: {
       createdAt: 'desc', // Shows newest connections first like LinkedIn
     },
+    take: 1000,
   });
 
   // A Connection row only exists in one direction for a one-way follow —

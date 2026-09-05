@@ -455,7 +455,9 @@ export class ProjectsService {
         projectId: projectId,
         ...(role ? { role: role as string } : {})
       },
-      include: { applicant: { omit: { fcmTokens: true, resumeKey: true } } }
+      include: { applicant: { omit: { fcmTokens: true, resumeKey: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
     });
 
     const jobEmployees = await this.prisma.jobApplication.findMany({
@@ -469,7 +471,9 @@ export class ProjectsService {
       include: {
         applicant: { omit: { fcmTokens: true, resumeKey: true } },
         job: true
-      }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 500,
     });
 
     return { partners: directPartners, employees: jobEmployees };
@@ -581,8 +585,9 @@ export class ProjectsService {
         id: true,         // The membership record ID
         role: true,       // Their role (e.g. PARTNER, EMPLOYEE)
         userId: true,     // The Member's User ID
-        
-      }
+
+      },
+      take: 500,
     });
   }
 
@@ -634,6 +639,7 @@ export class ProjectsService {
       orderBy: {
         createdAt: "desc",
       },
+      take: 300,
     });
   }
 
