@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { JobApplicationStatus } from '@prisma/client';
+import { JobApplicationStatus, Prisma } from '@prisma/client';
 import { CreateJobDto } from "./dto/create-job.dto";
 import { ApplyJobDto } from "./dto/apply-job.dto";
 import { NotificationsService } from '../notifications/notifications.service';
@@ -36,6 +36,58 @@ export class JobsService {
     });
 
     return jobs.map(({ _count, ...job }) => ({ ...job, applicationsCount: _count.applications }));
+  }
+
+  // Real pagination + server-side search/role filtering for the mobile
+  // Jobs browse screen, as a separate endpoint from list() above — list()
+  // is called unpaginated from web/admin too, so changing its response
+  // shape would break those. This is the same fix as Discover's: the old
+  // path fetched list()'s capped 100 once and did search + role filtering
+  // client-side; jobs past the 100th newest were invisible/unsearchable.
+  async browse(userId: string, page: number, limit: number, query?: string, role?: string) {
+    const searchTerm = query?.trim();
+
+    const where: Prisma.JobWhereInput = {
+      ...(role && role !== 'all' ? { role } : {}),
+      // heading/startupName/role/experience/description cover the common
+      // searches — skills is a string array, and Postgres/Prisma can't do
+      // substring matching inside array elements without raw SQL, so
+      // exact-tag search on it (previously done client-side) isn't
+      // included here.
+      ...(searchTerm
+        ? {
+            OR: [
+              { heading: { contains: searchTerm, mode: 'insensitive' } },
+              { startupName: { contains: searchTerm, mode: 'insensitive' } },
+              { role: { contains: searchTerm, mode: 'insensitive' } },
+              { experience: { contains: searchTerm, mode: 'insensitive' } },
+              { description: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const [jobs, totalCount] = await this.prisma.$transaction([
+      this.prisma.job.findMany({
+        where,
+        include: {
+          poster: { select: { id: true, fullName: true, headline: true, avatarUrl: true, role: true } },
+          _count: { select: { applications: true } },
+          applications: { where: { applicantId: userId } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        relationLoadStrategy: 'join',
+      }),
+      this.prisma.job.count({ where }),
+    ]);
+
+    return {
+      jobs: jobs.map(({ _count, ...job }) => ({ ...job, applicationsCount: _count.applications })),
+      totalCount,
+      hasMore: page * limit < totalCount,
+    };
   }
 
   // 2. GET SINGLE JOB DETAILS

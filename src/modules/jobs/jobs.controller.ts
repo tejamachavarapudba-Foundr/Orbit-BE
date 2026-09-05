@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CreateJobDto } from "./dto/create-job.dto";
@@ -15,6 +15,21 @@ export class JobsController {
   list(@Req() req: any) {
     const userId = req.user.id || req.user.sub;
     return this.svc.list(userId);
+  }
+
+  // GET /jobs/browse — paginated, must stay ahead of ':id' below.
+  @Get('browse')
+  browse(
+    @Req() req: any,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('query') query?: string,
+    @Query('role') role?: string,
+  ) {
+    const userId = req.user.id || req.user.sub;
+    const pageNum = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit ?? '20', 10) || 20));
+    return this.svc.browse(userId, pageNum, limitNum, query, role);
   }
 
   // GET /jobs/mine/applications
