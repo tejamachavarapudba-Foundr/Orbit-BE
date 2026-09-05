@@ -80,6 +80,34 @@ export class ProfilesService {
     const [profiles, totalCount] = await this.prisma.$transaction([
       this.prisma.profile.findMany({
         where,
+        // Explicit select, not a bare findMany — list() above (and this
+        // endpoint, before this fix) returns every scalar column including
+        // fcmTokens (other users' raw Firebase push tokens) and resumeKey
+        // (an internal storage key) to any authenticated caller. Browse
+        // cards don't need either, so they're left out entirely here
+        // rather than fetched and then stripped.
+        select: {
+          id: true,
+          fullName: true,
+          headline: true,
+          bio: true,
+          role: true,
+          location: true,
+          language: true,
+          company: true,
+          website: true,
+          linkedinUrl: true,
+          skills: true,
+          lookingFor: true,
+          openToConnect: true,
+          avatarUrl: true,
+          createdAt: true,
+          updatedAt: true,
+          onboardingCompleted: true,
+          onboardingGoals: true,
+          profileCompletion: true,
+          identityVerified: true,
+        },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
