@@ -1,8 +1,10 @@
 import './common/supabase.polyfill';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import compression from 'compression';
 import { AppModule } from './app.module';
 import { HttpErrorFilter } from './common/filters/http-exception.filter';
+import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
 import { configure as serverlessExpress } from '@codegenie/serverless-express';
 
 const logger = new Logger('Process');
@@ -29,9 +31,11 @@ export async function bootstrapApp() {
     // breaking anything keyed on it (rate limiting, audit logs).
     app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
+    app.use(compression());
     app.enableCors();
     app.setGlobalPrefix('api');
     app.useGlobalFilters(new HttpErrorFilter());
+    app.useGlobalInterceptors(new TimeoutInterceptor());
     app.useGlobalPipes(
       new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })
     );
@@ -53,11 +57,15 @@ async function bootstrap() {
   // anything keyed on it (rate limiting, audit logs).
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
+  app.use(compression());
+
   app.enableCors();
 
   app.setGlobalPrefix('api');
 
   app.useGlobalFilters(new HttpErrorFilter());
+
+  app.useGlobalInterceptors(new TimeoutInterceptor());
 
   app.useGlobalPipes(
     new ValidationPipe({

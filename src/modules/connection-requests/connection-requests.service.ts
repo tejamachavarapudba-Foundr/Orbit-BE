@@ -351,26 +351,109 @@ export class ConnectionRequestsService {
   }
 
   // Batched version of getConnectionStatus + getConnectionCount for a list
-  // of target users — a list screen (Discover) showing N cards used to
-  // fire 2*N separate HTTP requests (one status + one count per visible
-  // card), each paying its own round-trip/TLS overhead on top of the
-  // actual DB work. Collapsing that into one request and running the
-  // per-user lookups in parallel server-side removes N-1 round trips
-  // without changing what each lookup returns.
+  // of target users. The first cut of this just ran the single-target
+  // methods in Promise.all per id — one request instead of 2*N, but still
+  // up to 5*N individual DB queries underneath (each status check alone is
+  // 3 queries, each count is 2 more). Rewritten here to do the same work
+  // with a fixed ~5 queries total regardless of N, using set membership in
+  // JS instead of a query per target — the kind of N+1 that's easy to miss
+  // because Promise.all already hides the latency, but still stacks up
+  // real load on the DB's connection pool (Railway's Postgres has hit
+  // connection-pressure issues before).
   async getBulkConnectionInfo(currentUserId: string, targetIds: string[]) {
     const uniqueIds = Array.from(new Set(targetIds.filter((id) => id && id !== currentUserId)));
+    if (uniqueIds.length === 0) return {};
 
-    const entries = await Promise.all(
-      uniqueIds.map(async (targetId) => {
-        const [status, count] = await Promise.all([
-          this.getConnectionStatus(currentUserId, targetId),
-          this.getConnectionCount(targetId),
-        ]);
-        return [targetId, { ...status, count: count.count }] as const;
+    const [forwardEdges, reverseEdges, requests, targetOutgoing] = await Promise.all([
+      // currentUser -> target
+      this.prisma.connection.findMany({
+        where: { followerId: currentUserId, followingId: { in: uniqueIds } },
+        select: { followingId: true },
       }),
-    );
+      // target -> currentUser
+      this.prisma.connection.findMany({
+        where: { followerId: { in: uniqueIds }, followingId: currentUserId },
+        select: { followerId: true },
+      }),
+      this.prisma.connectionRequest.findMany({
+        where: {
+          OR: [
+            { requesterId: currentUserId, recipientId: { in: uniqueIds } },
+            { requesterId: { in: uniqueIds }, recipientId: currentUserId },
+          ],
+        },
+      }),
+      // Every target's own outgoing edges, to compute each one's mutual-
+      // connection count (independent of currentUserId).
+      this.prisma.connection.findMany({
+        where: { followerId: { in: uniqueIds } },
+        select: { followerId: true, followingId: true },
+      }),
+    ]);
 
-    return Object.fromEntries(entries);
+    const followsCurrentUser = new Set(forwardEdges.map((edge) => edge.followingId));
+    const currentUserFollows = new Set(reverseEdges.map((edge) => edge.followerId));
+
+    // One more pass to check, for every (target -> followedPerson) edge,
+    // whether followedPerson follows that target back — the same mutuality
+    // rule getConnectedProfiles applies for a single user, batched here.
+    const followedIds = Array.from(new Set(targetOutgoing.map((edge) => edge.followingId)));
+    const reverseOfOutgoing = followedIds.length
+      ? await this.prisma.connection.findMany({
+          where: { followerId: { in: followedIds }, followingId: { in: uniqueIds } },
+          select: { followerId: true, followingId: true },
+        })
+      : [];
+    const mutualPairs = new Set(reverseOfOutgoing.map((edge) => `${edge.followingId}:${edge.followerId}`));
+    const countByTarget = new Map<string, number>();
+    for (const edge of targetOutgoing) {
+      // Same defensive check as getConnectedProfiles — a self-connection
+      // row shouldn't exist, but don't count it if bad data slipped through.
+      if (edge.followerId !== edge.followingId && mutualPairs.has(`${edge.followerId}:${edge.followingId}`)) {
+        countByTarget.set(edge.followerId, (countByTarget.get(edge.followerId) ?? 0) + 1);
+      }
+    }
+
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const requestByTarget = new Map<string, (typeof requests)[number]>();
+    for (const request of requests) {
+      const targetId = request.requesterId === currentUserId ? request.recipientId : request.requesterId;
+      const existing = requestByTarget.get(targetId);
+      if (!existing || request.updatedAt > existing.updatedAt) {
+        requestByTarget.set(targetId, request);
+      }
+    }
+
+    const result: Record<string, { status: string; requestId?: string; count: number }> = {};
+
+    for (const targetId of uniqueIds) {
+      const count = countByTarget.get(targetId) ?? 0;
+
+      if (followsCurrentUser.has(targetId) && currentUserFollows.has(targetId)) {
+        result[targetId] = { status: 'connected', count };
+        continue;
+      }
+
+      const request = requestByTarget.get(targetId);
+      if (request) {
+        const isSender = request.requesterId === currentUserId;
+        const withinWindow = now - request.updatedAt.getTime() <= THIRTY_DAYS_MS;
+
+        if (request.status === 'pending' && withinWindow) {
+          result[targetId] = { status: isSender ? 'outgoing_pending' : 'incoming_pending', requestId: request.id, count };
+          continue;
+        }
+        if (request.status === 'declined' && isSender && withinWindow) {
+          result[targetId] = { status: 'outgoing_pending', requestId: request.id, count };
+          continue;
+        }
+      }
+
+      result[targetId] = { status: 'none', count };
+    }
+
+    return result;
   }
 
   async getConnectionCount(userId: string) {

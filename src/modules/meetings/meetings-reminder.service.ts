@@ -44,22 +44,22 @@ export class MeetingsReminderService {
         include: { proposal: { include: { invitees: true } } },
       });
 
-      for (const meeting of dueMeetings) {
-        const participantIds = [meeting.proposal.organizerId, ...meeting.proposal.invitees.map((i) => i.userId)];
+      await Promise.all(
+        dueMeetings.map(async (meeting) => {
+          const participantIds = [meeting.proposal.organizerId, ...meeting.proposal.invitees.map((i) => i.userId)];
 
-        for (const participantId of participantIds) {
-          await this.notifications.createNotification(
-            participantId,
+          await this.notifications.createBulkNotification(
+            participantIds,
             'MEETING_UPCOMING',
             'Meeting reminder',
             `Your meeting "${meeting.proposal.purpose}" ${checkpoint.label}.`,
           );
-        }
 
-        await this.prisma.meetingReminderLog.create({
-          data: { meetingId: meeting.id, checkpoint: checkpoint.key },
-        });
-      }
+          await this.prisma.meetingReminderLog.create({
+            data: { meetingId: meeting.id, checkpoint: checkpoint.key },
+          });
+        }),
+      );
     }
   }
 

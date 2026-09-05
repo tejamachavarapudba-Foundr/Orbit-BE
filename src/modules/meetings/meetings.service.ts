@@ -168,14 +168,12 @@ export class MeetingsService {
       include: { invitees: true },
     });
 
-    for (const inviteeId of inviteeIds) {
-      await this.notifications.createNotification(
-        inviteeId,
-        'MEETING_REQUEST',
-        'New meeting request',
-        `${dto.purpose} — pick a time that works for you.`,
-      );
-    }
+    await this.notifications.createBulkNotification(
+      inviteeIds,
+      'MEETING_REQUEST',
+      'New meeting request',
+      `${dto.purpose} — pick a time that works for you.`,
+    );
 
     return proposal;
   }

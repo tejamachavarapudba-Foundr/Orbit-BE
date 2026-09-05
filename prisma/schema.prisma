@@ -339,6 +339,10 @@ model StartupLike {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, projectId])
+  // Every project list/detail view counts likes via _count: { likedBy: true }
+  // (projects.service.ts) — a projectId-only lookup that userId_projectId's
+  // compound index (userId leading) doesn't serve well.
+  @@index([projectId])
 }
 
 model StartupView {

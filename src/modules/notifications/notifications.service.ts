@@ -68,4 +68,17 @@ export class NotificationsService {
 
     return notification;
   }
+
+  // Same alert broadcast to many users at once (e.g. every investor/advisor
+  // on a new startup publish) — one batched insert instead of N sequential
+  // creates, with the push fan-out kicked off in parallel afterward.
+  async createBulkNotification(userIds: string[], type: NotificationType, title: string, message: string) {
+    if (userIds.length === 0) return;
+
+    await this.prisma.notification.createMany({
+      data: userIds.map((userId) => ({ userId, type, title, message })),
+    });
+
+    void Promise.all(userIds.map((userId) => this.push.sendToProfile(userId, title, message)));
+  }
 }

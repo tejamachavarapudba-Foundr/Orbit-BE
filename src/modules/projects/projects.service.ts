@@ -241,14 +241,12 @@ export class ProjectsService {
            },
           });
 
-        for (const investor of investors) {
-          await this.notificationsService.createNotification(
-            investor.id,
-            NotificationType.SYSTEM_ALERT,
-            "New Startup Published",
-            `${updatedProject.name} is now available for review.`
-          );
-        }
+        await this.notificationsService.createBulkNotification(
+          investors.map((investor) => investor.id),
+          NotificationType.SYSTEM_ALERT,
+          "New Startup Published",
+          `${updatedProject.name} is now available for review.`
+        );
     }
 
     return updatedProject;
