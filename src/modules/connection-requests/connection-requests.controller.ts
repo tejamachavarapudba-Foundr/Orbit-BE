@@ -91,6 +91,17 @@ export class ConnectionRequestsController {
     return this.service.getConnectionStatus(user.id, targetUserId);
   }
 
+  // Batched status+count lookup for a list of user ids in one request —
+  // used by list screens (Discover) instead of firing a separate
+  // status + count request per visible card.
+  @Post('bulk-info')
+  getBulkInfo(
+    @CurrentUser() user: { id: string },
+    @Body() body: { userIds: string[] },
+  ) {
+    return this.service.getBulkConnectionInfo(user.id, body.userIds ?? []);
+  }
+
   // URL: GET /api/connection/count/:userId
   @Get('count/:userId')
   getCount(

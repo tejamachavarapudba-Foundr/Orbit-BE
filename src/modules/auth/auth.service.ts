@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
-import { hash, compare } from '../../common/utils/hash.util';
+import { hash, compare, fastHash, compareTokenHash } from '../../common/utils/hash.util';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { MailService } from '../mail/mail.service';
@@ -39,13 +39,6 @@ export class AuthService {
         profile: { create: { fullName: dto.fullName } },
       },
     });
-    // backfill profile id (= user id)
-    await this.prisma.profile.upsert({
-      where: { id: user.id },
-      update: { fullName: dto.fullName },
-      create: { id: user.id, fullName: dto.fullName },
-    });
-
     // Signup succeeds regardless of whether the confirmation email goes out —
     // an unverified account is still usable (soft gate), so a flaky mail
     // provider should never be able to block registration.
@@ -182,7 +175,7 @@ export class AuthService {
       });
       const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
       if (!user || !user.refreshHash) throw new UnauthorizedException();
-      const ok = await compare(refreshToken, user.refreshHash);
+      const ok = await compareTokenHash(refreshToken, user.refreshHash);
       if (!ok) throw new UnauthorizedException();
       return this.issueTokens(user.id, user.email, user.role); // 🟢 Passed user.role here
     } catch {
@@ -243,7 +236,7 @@ export class AuthService {
     );
     await this.prisma.user.update({
       where: { id: sub },
-      data: { refreshHash: await hash(refreshToken) },
+      data: { refreshHash: fastHash(refreshToken) },
     });
     return { accessToken, refreshToken };
   }

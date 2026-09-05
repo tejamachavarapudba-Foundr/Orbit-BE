@@ -350,6 +350,29 @@ export class ConnectionRequestsService {
     return { status: 'none' };
   }
 
+  // Batched version of getConnectionStatus + getConnectionCount for a list
+  // of target users — a list screen (Discover) showing N cards used to
+  // fire 2*N separate HTTP requests (one status + one count per visible
+  // card), each paying its own round-trip/TLS overhead on top of the
+  // actual DB work. Collapsing that into one request and running the
+  // per-user lookups in parallel server-side removes N-1 round trips
+  // without changing what each lookup returns.
+  async getBulkConnectionInfo(currentUserId: string, targetIds: string[]) {
+    const uniqueIds = Array.from(new Set(targetIds.filter((id) => id && id !== currentUserId)));
+
+    const entries = await Promise.all(
+      uniqueIds.map(async (targetId) => {
+        const [status, count] = await Promise.all([
+          this.getConnectionStatus(currentUserId, targetId),
+          this.getConnectionCount(targetId),
+        ]);
+        return [targetId, { ...status, count: count.count }] as const;
+      }),
+    );
+
+    return Object.fromEntries(entries);
+  }
+
   async getConnectionCount(userId: string) {
     const profiles = await this.getConnectedProfiles(userId);
     return { count: profiles.length };
