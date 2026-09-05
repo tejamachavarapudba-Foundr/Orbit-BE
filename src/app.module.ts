@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { SentryModule } from '@sentry/nestjs/setup';
 import { ConfigModule } from '@nestjs/config';
 import { BullModule } from '@nestjs/bull';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -47,6 +48,9 @@ import { VerificationModule } from './modules/verification/verification.module';
 
 @Module({
   imports: [
+    // Must be the first entry — Sentry's request/exception interceptors
+    // only apply to modules registered after this one.
+    SentryModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
       //load: [databaseConfig, jwtConfig, redisConfig, awsConfig],

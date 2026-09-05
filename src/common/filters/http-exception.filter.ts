@@ -1,4 +1,5 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import * as Sentry from '@sentry/nestjs';
 
 @Catch()
 export class HttpErrorFilter implements ExceptionFilter {
@@ -30,9 +31,12 @@ export class HttpErrorFilter implements ExceptionFilter {
       return;
     }
 
-    // Anything else (Prisma errors, unexpected throws) — log it and respond
-    // with a generic 500 instead of letting it surface as an unhandled error.
+    // Anything else (Prisma errors, unexpected throws) — log it, report it
+    // to Sentry (routine 4xx HttpExceptions above are deliberately not sent
+    // — those are expected/handled, not bugs), and respond with a generic
+    // 500 instead of letting it surface as an unhandled error.
     this.logger.error(exception instanceof Error ? exception.stack : exception);
+    Sentry.captureException(exception);
     res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
       message: 'Something went wrong. Please try again.',
