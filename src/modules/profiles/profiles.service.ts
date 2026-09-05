@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { MemberRole, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { StorageService } from '../storage/storage.service';
@@ -42,6 +43,51 @@ export class ProfilesService {
       take: 200,
       relationLoadStrategy: 'join',
     });
+  }
+
+  // Real pagination + server-side search/role filtering for the Discover
+  // screen, as a separate endpoint from list() above — list() is called
+  // unpaginated from a dozen+ places (communities, events, meetings, the
+  // web app's own pages) for a "most members" lookup set, so changing its
+  // response shape would break all of those. This is Discover's own path:
+  // it used to fetch list()'s capped 200 once and do search, role
+  // filtering, and "load more" entirely client-side by slicing that array
+  // — anyone past the 200th newest member was permanently invisible and
+  // unsearchable, not just a perf issue.
+  async discover(currentUserId: string, page: number, limit: number, query?: string, role?: string) {
+    const searchTerm = query?.trim();
+
+    const where: Prisma.ProfileWhereInput = {
+      id: { not: currentUserId },
+      ...(role && role !== 'all' ? { role: role as MemberRole } : {}),
+      // fullName/headline/company/location cover the common searches —
+      // skills/lookingFor are string arrays, and Postgres/Prisma can't do
+      // substring matching inside array elements without raw SQL, so
+      // exact-tag search on those (previously done client-side) isn't
+      // included here.
+      ...(searchTerm
+        ? {
+            OR: [
+              { fullName: { contains: searchTerm, mode: 'insensitive' } },
+              { headline: { contains: searchTerm, mode: 'insensitive' } },
+              { company: { contains: searchTerm, mode: 'insensitive' } },
+              { location: { contains: searchTerm, mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+    };
+
+    const [profiles, totalCount] = await this.prisma.$transaction([
+      this.prisma.profile.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.profile.count({ where }),
+    ]);
+
+    return { profiles, totalCount, hasMore: page * limit < totalCount };
   }
 
   async get(id: string) {

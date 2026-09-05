@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Param, Delete, Patch, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Param, Delete, Patch, Query, Req, UseGuards } from '@nestjs/common';
 import { ProfilesService } from './profiles.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -58,6 +58,21 @@ deleteResume(
 }
 
   @Get() list() { return this.svc.list(); }
+
+  // Must stay ahead of ':id' below, or "discover" gets swallowed as an id param.
+  @Get('discover')
+  discover(
+    @CurrentUser() user: { id: string },
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('query') query?: string,
+    @Query('role') role?: string,
+  ) {
+    const pageNum = Math.max(1, parseInt(page ?? '1', 10) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit ?? '20', 10) || 20));
+    return this.svc.discover(user.id, pageNum, limitNum, query, role);
+  }
+
   @Get(':id') get(@Param('id') id: string) { return this.svc.get(id); }
   @Patch('me') update(@CurrentUser() u: { id: string }, @Body() dto: UpdateProfileDto) {
     return this.svc.update(u.id, dto);
