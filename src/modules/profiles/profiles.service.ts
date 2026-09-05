@@ -40,6 +40,17 @@ export class ProfilesService {
         professionalProfile: true,
         serviceProviderProfile: true,
       },
+      // Was returning every scalar column to any authenticated caller,
+      // including other users' raw Firebase push tokens (fcmTokens) and
+      // internal resume storage keys (resumeKey) — same leak fixed in
+      // discover() above, fixed here too via omit rather than switching to
+      // select, so the dozen+ existing callers (communities, events,
+      // meetings, web's own pages, chat/follows lookups) keep getting the
+      // exact same shape they already depend on, minus just these two.
+      omit: {
+        fcmTokens: true,
+        resumeKey: true,
+      },
       take: 200,
       relationLoadStrategy: 'join',
     });
@@ -119,6 +130,9 @@ export class ProfilesService {
   }
 
   async get(id: string) {
+    // Only ever used to view someone else's public profile (getUserById on
+    // the frontend) — the signed-in owner's own resumeKey flows through
+    // /auth/me instead, so omitting it here doesn't affect that.
     const profile = await this.prisma.profile.findUnique({
       where: {
         id,
@@ -129,6 +143,10 @@ export class ProfilesService {
         advisorProfile: true,
         professionalProfile: true,
         serviceProviderProfile: true,
+      },
+      omit: {
+        fcmTokens: true,
+        resumeKey: true,
       },
       relationLoadStrategy: 'join',
     });
